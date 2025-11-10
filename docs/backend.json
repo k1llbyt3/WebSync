@@ -1,0 +1,358 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the WorkSync application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "preferences": {
+          "type": "string",
+          "description": "JSON string containing user preferences like theme, notifications, and default priority."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a task within the WorkSync application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Task entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the task."
+        },
+        "priority": {
+          "type": "number",
+          "description": "Priority score of the task determined by AI."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the task (e.g., 'To Do', 'In Progress', 'Completed')."
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "Date when the task is due.",
+          "format": "date-time"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags associated with the task.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "userId": {
+          "type": "string",
+          "description": "The user who created the task."
+        },
+        "assigneeId": {
+          "type": "string",
+          "description": "The user the task is assigned to."
+        },
+        "createdAt": {
+            "type": "string",
+            "description": "Date when the task was created.",
+            "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "Reminder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reminder",
+      "type": "object",
+      "description": "Represents a reminder for a task or event.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Reminder entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the reminder."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the reminder."
+        },
+        "reminderDate": {
+          "type": "string",
+          "description": "Date and time when the reminder should trigger.",
+          "format": "date-time"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. The user who owns this reminder."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "reminderDate",
+        "userId"
+      ]
+    },
+    "Meeting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Meeting",
+      "type": "object",
+      "description": "Represents a meeting and its associated transcripts and analyses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Meeting entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the meeting."
+        },
+        "transcript": {
+          "type": "string",
+          "description": "The full transcript of the meeting."
+        },
+        "summary": {
+          "type": "string",
+          "description": "AI-generated summary of the meeting."
+        },
+        "actionItems": {
+          "type": "array",
+          "description": "A list of action items extracted from the meeting.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Meeting). The user who created/owns the meeting record."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date and time of the meeting.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "transcript",
+        "summary",
+        "userId",
+        "date"
+      ]
+    },
+    "CodeSnippet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CodeSnippet",
+      "type": "object",
+      "description": "Represents a generated code snippet.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CodeSnippet entity."
+        },
+        "language": {
+          "type": "string",
+          "description": "Programming language of the code snippet."
+        },
+        "code": {
+          "type": "string",
+          "description": "The actual code snippet."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of what the code snippet does."
+        },
+        "taskId": {
+          "type": "string",
+          "description": "Reference to Task. (Relationship: Task 1:N CodeSnippet). The task this code snippet is associated with."
+        }
+      },
+      "required": [
+        "id",
+        "language",
+        "code",
+        "description",
+        "taskId"
+      ]
+    },
+    "CollaborationHub": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CollaborationHub",
+      "type": "object",
+      "description": "Represents a collaboration hub where users can share Kanban boards and collaborate.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CollaborationHub entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the collaboration hub."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the collaboration hub."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N CollaborationHub). The user who owns/created the collaboration hub."
+        },
+        "userIds": {
+          "type": "array",
+          "description": "References to Users. (Relationship: User N:N CollaborationHub).  Users that have access to the hub.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "taskIds": {
+          "type": "array",
+          "description": "References to Tasks. Tasks associated with this collaboration hub.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "ownerId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Uses path-based ownership for private user data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Global tasks collection. Access is controlled by userId and assigneeId fields.",
+          "params": [
+            {
+              "name": "taskId",
+              "description": "The unique identifier for the task."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/reminders/{reminderId}",
+        "definition": {
+          "entityName": "Reminder",
+          "schema": {
+            "$ref": "#/backend/entities/Reminder"
+          },
+          "description": "Stores reminders for a specific user. Enforces path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "reminderId",
+              "description": "The unique identifier for the reminder."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/meetings/{meetingId}",
+        "definition": {
+          "entityName": "Meeting",
+          "schema": {
+            "$ref": "#/backend/entities/Meeting"
+          },
+          "description": "Stores meetings created/owned by a specific user. Enforces path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "meetingId",
+              "description": "The unique identifier for the meeting."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/collaborationHubs/{collaborationHubId}",
+        "definition": {
+          "entityName": "CollaborationHub",
+          "schema": {
+            "$ref": "#/backend/entities/CollaborationHub"
+          },
+          "description": "Stores collaboration hubs. Includes denormalized 'ownerId' and 'userIds' array for authorization independence. The 'userIds' array is used to control user access to the hub.",
+          "params": [
+            {
+              "name": "collaborationHubId",
+              "description": "The unique identifier for the collaboration hub."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability. User data is stored under `/users/{userId}`, providing path-based ownership. Tasks are now in a root `/tasks` collection for easier querying across all users, with authorization managed by `userId` and `assigneeId` fields. Reminders and Meetings remain nested under the user for strict privacy. Collaboration hubs are in a top-level collection for shared access. This hybrid model supports both private and collaborative data patterns efficiently."
+  }
+}
+
+    

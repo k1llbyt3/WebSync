@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 170 80% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 280 80% 55%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 310 80% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 170 80% 40%;
+    --radius: 0.5rem;
+    --chart-1: 170 80% 58%;
+    --chart-2: 280 75% 55%;
+    --chart-3: 340 80% 60%;
+    --chart-4: 30 80% 50%;
+    --chart-5: 280 70% 50%;
+  }
+
+  .dark {
+    --background: 220 40% 5%;
+    --foreground: 180 20% 98%;
+    --card: 220 40% 10%;
+    --card-foreground: 180 20% 98%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 220 20% 98%;
+    --primary: 170 80% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 280 80% 60%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 14.3% 15%;
+    --muted-foreground: 220 20% 75%;
+    --accent: 310 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --hover-accent: 310 80% 55%;
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 25%;
+    --input: 220 13% 25%;
+    --ring: 170 80% 50%;
+    --chart-1: 170 80% 58%;
+    --chart-2: 280 75% 55%;
+    --chart-3: 340 80% 60%;
+    --chart-4: 30 80% 50%;
+    --chart-5: 280 70% 50%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  .animated-gradient {
+    background: linear-gradient(
+      -45deg,
+      hsl(240 80% 20% / 0.9),
+      hsl(280 80% 30% / 0.9),
+      hsl(190 80% 25% / 0.9),
+      hsl(240 80% 20% / 0.9)
+    );
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+}
+
+@layer components {
+    .card {
+        @apply rounded-2xl border-white/20 bg-black/10 shadow-lg backdrop-blur-xl;
+        box-shadow: 0 0 0 1px hsl(var(--border) / 0.4), 0 2px 8px 0 hsl(var(--border) / 0.1);
+    }
+}
+
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

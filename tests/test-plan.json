@@ -1,0 +1,102 @@
+
+{
+  "manual_tests": [
+    {
+      "test_case_id": "TC01",
+      "title": "User Signup and Initial Login",
+      "steps": [
+        "Navigate to the landing page.",
+        "Click the 'Sign Up' button.",
+        "Fill in the 'Full name', 'Email', and 'Password' fields with valid, new user information.",
+        "Click the 'Create an account' button.",
+        "Verify that the user is redirected to the '/dashboard' page.",
+        "Verify that a welcome toast message appears.",
+        "Click on the 'Log out' button in the sidebar.",
+        "Navigate to the '/login' page.",
+        "Enter the credentials of the newly created user.",
+        "Click the 'Login' button.",
+        "Verify that the user is redirected to the '/dashboard' page."
+      ],
+      "expected_result": "User should be able to sign up, be logged in, log out, and log back in successfully. The dashboard should be displayed after login/signup."
+    },
+    {
+      "test_case_id": "TC02",
+      "title": "Create, Edit, and Delete a Task",
+      "steps": [
+        "Navigate to the 'Tasks' page.",
+        "Click the 'Add Task' button.",
+        "Fill in the 'Title' and 'Description' for a new task.",
+        "Set the priority to '3'.",
+        "Click 'Add Task'.",
+        "Verify the new task appears in the 'Backlog' column.",
+        "Find the newly created task and click the 'more' (three dots) icon, then select 'Edit'.",
+        "Change the task's title and set the priority to '8'.",
+        "Click 'Update Task'.",
+        "Verify the task's title and priority have been updated on the board.",
+        "Find the task again, click the 'more' icon, and select 'Delete'.",
+        "Verify the task is removed from the board."
+      ],
+      "expected_result": "User should be able to create, see, edit, and delete a task. All changes should be reflected on the task board immediately."
+    },
+    {
+      "test_case_id": "TC03",
+      "title": "Analyze a Meeting Transcript and Add Task",
+      "steps": [
+        "Navigate to the 'Meeting Co-Pilot' page.",
+        "Paste the following text into the transcript textarea: 'Team, our next deadline is next Friday. Action item for John: please finish the UI mockups.'",
+        "Click the 'Analyze Transcript' button.",
+        "Wait for the analysis to complete.",
+        "Verify that the 'AI-Generated Summary' card is populated.",
+        "Verify that the 'Key Information' card shows 'next Friday' under 'Dates & Times'.",
+        "Verify that the 'Action Items' card shows 'John: please finish the UI mockups' or a similar item.",
+        "Click the 'Add Task' button next to the extracted action item.",
+        "Verify that a toast notification appears confirming the task was added.",
+        "Navigate to the 'Tasks' page and verify the new task appears in the 'Backlog' column."
+      ],
+      "expected_result": "The AI should correctly extract summary, dates, and action items. Clicking 'Add Task' on an action item should create a corresponding task on the task board."
+    },
+    {
+      "test_case_id": "TC04",
+      "title": "Create and Delete a Reminder",
+      "steps": [
+        "Navigate to the 'Reminders' page.",
+        "Click the 'Add Reminder' button.",
+        "In the dialog, enter 'Follow up on Q3 report' as the title.",
+        "Select a date in the near future.",
+        "Click 'Add Reminder'.",
+        "Verify the new reminder appears in the 'Upcoming' list with the correct title and date.",
+        "Find the new reminder and click the checkmark (delete) icon.",
+        "Verify a toast notification appears confirming the deletion.",
+        "Verify the reminder is removed from the list."
+      ],
+      "expected_result": "User should be able to create a new reminder and see it in the list. User should be able to delete the reminder, which should then disappear from the list."
+    },
+    {
+      "test_case_id": "TC05",
+      "title": "Task Assignment and Inbox Workflow",
+      "steps": [
+        "Log in as User A.",
+        "Navigate to the 'Tasks' page and click 'Add Task'.",
+        "Enter a title like 'Task for User B'.",
+        "In the 'Assignee Email' field, enter the email of a pre-existing User B.",
+        "Click 'Add Task'.",
+        "Log out as User A and log in as User B.",
+        "Navigate to the 'Tasks' page and click the 'Inbox' tab.",
+        "Verify the 'Task for User B' appears in the inbox.",
+        "Click the 'Accept' button for that task.",
+        "Verify the task disappears from the inbox.",
+        "Click the 'My Board' tab and verify the task now appears in the 'Backlog' column."
+      ],
+      "expected_result": "A task assigned to another user should appear in their inbox. Accepting the task should move it to their main task board."
+    }
+  ],
+  "automation_tests": [
+    {
+      "framework": "Jest / React Testing Library",
+      "filename": "src/components/user-nav.test.tsx",
+      "content": "/**\n * @jest-environment jsdom\n */\nimport React from 'react';\nimport { render, screen } from '@testing-library/react';\nimport { UserNav } from './user-nav';\nimport { useUser } from '@/firebase';\n\n// Mock the useUser hook from Firebase\njest.mock('@/firebase', () => ({\n  ...jest.requireActual('@/firebase'),\n  useUser: jest.fn(),\n}));\n\n// Mock the useSidebar hook\njest.mock('./ui/sidebar', () => ({\n  useSidebar: () => ({ open: true }),\n}));\n\ndescribe('UserNav Component', () => {\n\n  it('shows a loading skeleton when user state is loading', () => {\n    (useUser as jest.Mock).mockReturnValue({ user: null, isUserLoading: true });\n    render(<UserNav />);\n    // Skeletons don't have specific text, so we test for their presence by role or test-id if available\n    // Assuming Skeleton component renders a div with role 'status' or similar\n    expect(screen.getByRole('alert', { name: /loading/i })).toBeInTheDocument();\n  });\n\n  it('shows a login button when no user is authenticated', () => {\n    (useUser as jest.Mock).mockReturnValue({ user: null, isUserLoading: false });\n    render(<UserNav />);\n    expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();\n  });\n\n  it('displays user information when a user is authenticated', () => {\n    const mockUser = {\n      displayName: 'Jane Doe',\n      email: 'jane.doe@example.com',\n      photoURL: 'http://example.com/avatar.png',\n    };\n    (useUser as jest.Mock).mockReturnValue({ user: mockUser, isUserLoading: false });\n    render(<UserNav />);\n    expect(screen.getByText('Jane Doe')).toBeInTheDocument();\n    expect(screen.getByText('jane.doe@example.com')).toBeInTheDocument();\n    const avatar = screen.getByRole('img');\n    expect(avatar).toHaveAttribute('src', mockUser.photoURL);\n  });\n\n  it('displays fallback initials if no photoURL is available', () => {\n    const mockUser = {\n      displayName: 'John Doe',\n      email: 'john.doe@example.com',\n      photoURL: null, // No photo\n    };\n    (useUser as jest.Mock).mockReturnValue({ user: mockUser, isUserLoading: false });\n    render(<UserNav />);\n    // The fallback avatar will contain the initials 'JD'\n    expect(screen.getByText('JD')).toBeInTheDocument();\n  });\n\n});"
+    }
+  ]
+}
+
+    
