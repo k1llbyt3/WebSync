@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
+import { LogoutButton } from "@/components/logout-button";
 
 const navItems = [
   {
@@ -64,6 +65,9 @@ export function MainNav() {
           </SidebarMenuButton>
         </SidebarMenuItem>
       ))}
+      <SidebarMenuItem>
+        <LogoutButton />
+      </SidebarMenuItem>
     </SidebarMenu>
   );
 }

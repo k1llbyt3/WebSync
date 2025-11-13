@@ -29,11 +29,9 @@ export default function MainLayout({
           <Sidebar>
             <SidebarHeader>
                 <div className="flex items-center gap-2 p-2">
-                    <SidebarToggle>
-                        <Icons.panelLeft className="h-6 w-6" />
-                    </SidebarToggle>
-                    <Link href="/" className="font-bold text-xl group-data-[[data-state=collapsed]]/sidebar:hidden">
-                        WorkSync
+                    <Link href="/" className="flex items-center gap-1 font-bold text-xl">
+                        <Icons.logo />
+                        <span style={{ color: '#FF4F58' }}>WorkSync</span>
                     </Link>
                 </div>
               <UserNav />
@@ -42,7 +40,6 @@ export default function MainLayout({
               <MainNav />
             </SidebarContent>
             <SidebarFooter>
-              <LogoutButton />
             </SidebarFooter>
           </Sidebar>
           <main className="flex-1 overflow-auto p-4 md:p-8">

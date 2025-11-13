@@ -4,7 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
-import { FirebaseClientProvider } from "@/firebase";
+import { FirebaseClientProvider } from '@/firebase/client-provider';
+
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -12,7 +13,7 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "FocusFlow",
+  title: "WebSync",
   description: "Your AI-powered productivity partner.",
 };
 

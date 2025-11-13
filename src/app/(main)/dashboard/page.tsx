@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -56,19 +56,21 @@ export default function DashboardPage() {
   const { data: tasks, isLoading: isLoadingTasks } = useCollection<Task>(allTasksQuery);
 
   const taskCounts = useMemo(() => {
-    if (!tasks) return { todo: 0, inProgress: 0, completed: 0, overdue: 0, totalProjects: 0 };
+    if (!tasks) return { backlog: 0, todo: 0, inProgress: 0, review: 0, completed: 0, overdue: 0, totalProjects: 0 };
     const now = new Date();
     
     const counts = tasks.reduce((acc, task) => {
-        if (task.status === 'Backlog' || task.status === 'To-Do') acc.todo++;
+        if (task.status === 'Backlog') acc.backlog++;
+        if (task.status === 'To-Do') acc.todo++;
         if (task.status === 'In Progress') acc.inProgress++;
+        if (task.status === 'Review') acc.review++;
         if (task.status === 'Completed') acc.completed++;
         if (task.dueDate?.seconds * 1000 < now.getTime() && task.status !== 'Completed') acc.overdue++;
         if (task.tags) {
             task.tags.forEach(tag => acc.projects.add(tag));
         }
         return acc;
-    }, { todo: 0, inProgress: 0, completed: 0, overdue: 0, projects: new Set<string>() });
+    }, { backlog: 0, todo: 0, inProgress: 0, review: 0, completed: 0, overdue: 0, projects: new Set<string>() });
     
     return { ...counts, totalProjects: counts.projects.size };
   }, [tasks]);
@@ -144,17 +146,50 @@ export default function DashboardPage() {
   }, [tasks]);
 
 
+  const AnimatedCounter = ({ value }: { value: number }) => {
+    const [displayValue, setDisplayValue] = useState(0);
+    
+    useEffect(() => {
+      const duration = 800;
+      const steps = 30;
+      const increment = value / steps;
+      let current = 0;
+      
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= value) {
+          setDisplayValue(value);
+          clearInterval(timer);
+        } else {
+          setDisplayValue(Math.floor(current));
+        }
+      }, duration / steps);
+      
+      return () => clearInterval(timer);
+    }, [value]);
+    
+    return <span>{displayValue}</span>;
+  };
+
   const renderStatCard = (title: string, value: number, description: string, icon: keyof typeof Icons, loading: boolean) => {
     const Icon = Icons[icon];
     return (
-        <Card>
+        <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 hover:border-primary/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium group-hover:text-primary transition-colors">{title}</CardTitle>
+                <div className="rounded-full bg-primary/10 p-2 group-hover:bg-primary/20 transition-all group-hover:rotate-12 duration-300">
+                  <Icon className="h-4 w-4 text-primary" />
+                </div>
             </CardHeader>
             <CardContent>
-                {loading ? <Skeleton className="h-8 w-16"/> : <div className="text-2xl font-bold">{value}</div>}
-                <p className="text-xs text-muted-foreground">{description}</p>
+                {loading ? (
+                  <Skeleton className="h-8 w-16 animate-pulse"/> 
+                ) : (
+                  <div className="text-2xl font-bold tabular-nums">
+                    <AnimatedCounter value={value} />
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">{description}</p>
             </CardContent>
         </Card>
     )
@@ -167,14 +202,15 @@ export default function DashboardPage() {
 
   return (
     <div className="grid gap-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {renderStatCard("Backlog", taskCounts.backlog, `Pending tasks`, 'inbox', isLoadingTasks)}
         {renderStatCard("To-Do", taskCounts.todo, `${taskCounts.overdue} overdue`, 'tasks', isLoadingTasks)}
-        {renderStatCard("In Progress", taskCounts.inProgress, `Across all projects`, 'bot', isLoadingTasks)}
-        {renderStatCard("Completed", taskCounts.completed, `All time`, 'check', isLoadingTasks)}
-        {renderStatCard("Active Projects", taskCounts.totalProjects, ``, 'logo', isLoadingTasks)}
+        {renderStatCard("In Progress", taskCounts.inProgress, `Active work`, 'bot', isLoadingTasks)}
+        {renderStatCard("Review", taskCounts.review, `Ready for review`, 'eye', isLoadingTasks)}
+        {renderStatCard("Completed", taskCounts.completed, `All time`, 'listChecks', isLoadingTasks)}
       </div>
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
+        <Card className="lg:col-span-4 hover:shadow-md transition-shadow duration-300">
           <CardHeader>
             <CardTitle>Task Trends</CardTitle>
             <CardDescription>
@@ -239,7 +275,7 @@ export default function DashboardPage() {
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-3">
+        <Card className="lg:col-span-3 hover:shadow-md transition-shadow duration-300">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
@@ -248,19 +284,23 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             {isLoadingTasks ? Array.from({length: 4}).map((_, i) => (
-                <div key={i} className="flex items-start gap-4">
+                <div key={i} className="flex items-start gap-4 animate-pulse">
                     <Skeleton className="h-8 w-8 rounded-full" />
                     <div className="space-y-2">
                         <Skeleton className="h-4 w-[250px]" />
                         <Skeleton className="h-3 w-[100px]" />
                     </div>
                 </div>
-            )) : recentActivities.length > 0 ? recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-4">
-                <div className="rounded-full bg-primary/10 p-2">
+            )) : recentActivities.length > 0 ? recentActivities.map((activity, index) => (
+              <div 
+                key={activity.id} 
+                className="flex items-start gap-4 p-2 rounded-lg hover:bg-accent/50 transition-all duration-200 cursor-pointer group animate-in fade-in slide-in-from-left-4"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="rounded-full bg-primary/10 p-2 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-200">
                   <Icons.users className="h-4 w-4 text-primary" />
                 </div>
-                <div className="text-sm">
+                <div className="text-sm flex-1">
                   <p className="font-medium">
                     {activity.user}{" "}
                     <span className="font-normal text-muted-foreground">
@@ -279,28 +319,38 @@ export default function DashboardPage() {
         </Card>
       </div>
       <div className="grid gap-8 md:grid-cols-2">
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-300">
             <CardHeader>
                 <CardTitle>Projects Overview</CardTitle>
                 <CardDescription>Current status of all active projects.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 {isLoadingTasks ? Array.from({length: 2}).map((_, i) => (
-                    <div key={i} className="space-y-2">
+                    <div key={i} className="space-y-2 animate-pulse">
                         <Skeleton className="h-4 w-1/4" />
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-3 w-1/2" />
                     </div>
-                )) : projects.length > 0 ? projects.map(project => (
-                    <div key={project.name} className="space-y-2">
+                )) : projects.length > 0 ? projects.map((project, index) => (
+                    <div 
+                      key={project.name} 
+                      className="space-y-2 p-3 rounded-lg hover:bg-accent/30 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
                         <div className="flex justify-between text-sm">
                             <span className="font-medium">{project.name}</span>
-                            <span className="text-muted-foreground">{project.progress}%</span>
+                            <span className="text-muted-foreground font-semibold">{project.progress}%</span>
                         </div>
-                        <Progress value={project.progress} aria-label={`${project.name} progress`} />
+                        <Progress value={project.progress} aria-label={`${project.name} progress`} className="transition-all duration-500" />
                         <div className="flex justify-between text-xs">
                              <span className="text-muted-foreground">{project.status}</span>
-                             <Button variant="link" className="h-auto p-0 text-xs" onClick={() => handleProjectClick(project.name)}>View Project</Button>
+                             <Button 
+                               variant="link" 
+                               className="h-auto p-0 text-xs hover:scale-110 transition-transform" 
+                               onClick={() => handleProjectClick(project.name)}
+                             >
+                               View Project →
+                             </Button>
                         </div>
                     </div>
                 )) : (
@@ -308,10 +358,10 @@ export default function DashboardPage() {
                 )}
             </CardContent>
         </Card>
-       <Card>
+       <Card className="hover:shadow-md transition-shadow duration-300 border-2 border-primary/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Icons.sparkles className="h-5 w-5 text-primary" />
+              <Icons.sparkles className="h-5 w-5 text-primary animate-pulse" />
               <span>AI Insights</span>
             </CardTitle>
             <CardDescription>
@@ -322,7 +372,10 @@ export default function DashboardPage() {
              <p className="text-muted-foreground">
               <span className="font-semibold text-foreground">Trending Task:</span> You've created 5 tasks related to "API" this week. Consider creating a dedicated project or tag.
              </p>
-            <Button>Generate new insight</Button>
+            <Button className="group hover:scale-105 transition-transform">
+              Generate new insight
+              <Icons.sparkles className="ml-2 h-4 w-4 group-hover:animate-spin" />
+            </Button>
           </CardContent>
         </Card>
       </div>

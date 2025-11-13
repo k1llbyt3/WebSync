@@ -1,0 +1,36 @@
+Error: Each child in a list should have a unique "key" prop.
+
+Check the render method of `div`. It was passed a child from Droppable. See https://react.dev/link/warning-keys for more information.
+    at createConsoleError (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:882:71)
+    at handleConsoleError (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1058:54)
+    at console.error (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1223:57)
+    at https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:14997:29
+    at runWithFiberInDEV (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:3073:74)
+    at warnForMissingKey (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:14996:17)
+    at warnOnInvalidKey (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:5685:21)
+    at reconcileChildrenArray (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:5727:225)
+    at reconcileChildFibersImpl (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:5829:117)
+    at https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:5856:39
+    at reconcileChildren (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:7439:119)
+    at beginWork (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:8219:24)
+    at runWithFiberInDEV (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:3073:74)
+    at performUnitOfWork (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10243:97)
+    at workLoopSync (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10135:40)
+    at renderRootSync (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10118:13)
+    at performWorkOnRoot (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:9853:212)
+    at performWorkOnRootViaSchedulerTask (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10826:9)
+    at MessagePort.performWorkUntilDeadline (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1982:64)
+    at renderTaskCard (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/src_6caf630d._.js:2262:218)
+    at https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/src_6caf630d._.js:3135:165
+    at Array.map (<anonymous>)
+    at children (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/src_6caf630d._.js:3135:146)
+    at Droppable (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_react-beautiful-dnd_dist_react-beautiful-dnd_esm_d54df031.js:7443:8)
+    at connectAdvanced.wrapWithConnect.ConnectFunction.useMemo[renderedWrappedComponent] (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_2a10d8ab._.js:7558:211)
+    at mountMemo (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:6939:25)
+    at Object.useMemo (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:15082:24)
+    at exports.useMemo (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1687:36)
+    at ConnectFunction (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_2a10d8ab._.js:7556:217)
+    at https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/src_6caf630d._.js:3037:279
+    at Array.map (<anonymous>)
+    at TasksPage (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/src_6caf630d._.js:3037:63)
+    at ClientPageRoot (https://8496337f-7bd6-48a8-820f-e89cca21ac60-00-t8zlmg3urgr0.picard.replit.dev/_next/static/chunks/node_modules_next_dist_1a6ee436._.js:2061:50)

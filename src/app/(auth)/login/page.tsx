@@ -1,8 +1,8 @@
 "use client";
 
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Icons } from "@/components/icons";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -26,7 +26,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email || !password) {
       toast({
@@ -36,23 +36,71 @@ export default function LoginPage() {
       });
       return;
     }
+
+    if (!auth) {
+      toast({
+        title: "Login Failed",
+        description: "Authentication not initialized yet. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged will handle the redirect in the layout
       toast({
         title: "Login Successful",
         description: "Redirecting to your dashboard...",
       });
       router.push("/dashboard");
     } catch (error: any) {
+      console.error("Login error:", error);
       let description = "An unexpected error occurred. Please try again.";
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-        description = "Invalid email or password. Please try again.";
+      
+      // Show detailed error message
+      if (error?.code === "auth/invalid-credential") {
+        description = "Invalid email or password. Please create an account first at /signup";
+      } else if (error?.code === "auth/wrong-password") {
+        description = "Wrong password. Please try again.";
+      } else if (error?.code === "auth/user-not-found") {
+        description = "No account found. Please sign up first at /signup";
+      } else if (error?.code === "auth/configuration-not-found") {
+        description = "Firebase Email/Password auth is not enabled. Please enable it in Firebase Console.";
+      } else if (error?.message) {
+        description = error.message;
       }
+      
       toast({
         title: "Login Failed",
         description,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Google sign-in handler (works if you have google provider enabled in Firebase)
+  const handleGoogleSignIn = async () => {
+    if (!auth) {
+      toast({
+        title: "Login Failed",
+        description: "Authentication not initialized yet. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast({ title: "Signed in with Google", description: "Redirecting..." });
+      router.push("/dashboard");
+    } catch (err: any) {
+      toast({
+        title: "Google Sign-In Failed",
+        description: err?.message || "Could not sign in with Google.",
         variant: "destructive",
       });
     } finally {
@@ -86,7 +134,7 @@ export default function LoginPage() {
           <div className="grid gap-2">
             <div className="flex items-center">
               <Label htmlFor="password">Password</Label>
-              <Link href="#" className="ml-auto inline-block text-sm underline">
+              <Link href="/forgot-password" className="ml-auto inline-block text-sm underline">
                 Forgot your password?
               </Link>
             </div>
@@ -104,7 +152,8 @@ export default function LoginPage() {
             {isLoading && <Icons.bot className="mr-2 h-4 w-4 animate-spin" />}
             Login
           </Button>
-          <Button variant="outline" className="w-full" disabled={isLoading}>
+          <Button variant="outline" className="w-full" disabled={isLoading} onClick={handleGoogleSignIn}>
+            {isLoading ? <Icons.bot className="mr-2 h-4 w-4 animate-spin" /> : null}
             Login with Google
           </Button>
         </form>

@@ -1,5 +1,6 @@
 
-"use client"
+"use client";
+export const dynamic = "force-dynamic";
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ import {
 import { AddTaskForm, AddTaskFormValues, Task } from "@/components/add-task-form";
 import { format, formatDistanceToNow } from "date-fns";
 import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
-import { collection, doc, query, where, getDocs, updateDoc } from "firebase/firestore";
+import { collection, doc, query, where, getDocs, updateDoc, addDoc, deleteDoc } from "firebase/firestore";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -81,8 +82,8 @@ const AiPrioritizeDialog = ({ onTaskCreate }: { onTaskCreate: (data: AddTaskForm
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="transition-transform hover:scale-105 active:scale-95">
-                    <Icons.sparkles className="mr-2 h-5 w-5" />
+                <Button variant="outline" className="group transition-all hover:scale-105 active:scale-95 hover:border-primary/50 hover:shadow-md">
+                    <Icons.sparkles className="mr-2 h-5 w-5 group-hover:animate-pulse" />
                     Prioritize with AI
                 </Button>
             </DialogTrigger>
@@ -123,6 +124,7 @@ export default function TasksPage() {
   
   const { data: users, isLoading: isLoadingUsers } = useCollection<any>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
 
+  const [mounted, setMounted] = useState(false);
   const [openAddTask, setOpenAddTask] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -133,6 +135,17 @@ export default function TasksPage() {
   const [priorityFilters, setPriorityFilters] = useState<Record<string, boolean>>({
     "High": true, "Medium": true, "Low": true,
   });
+  const [isDragging, setIsDragging] = useState(false);
+  const [enableDragDrop, setEnableDragDrop] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+    // Delay enabling drag-and-drop to ensure all droppable zones are ready
+    const timer = setTimeout(() => {
+      setEnableDragDrop(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
   
     useEffect(() => {
         const project = searchParams.get('project');
@@ -149,50 +162,80 @@ export default function TasksPage() {
   }, [allTasks, user]);
 
 
+  const { toast } = useToast();
+
   const onTaskSubmit = async (data: AddTaskFormValues) => {
     if (!user) return;
     const tasksCollectionRef = collection(firestore, 'tasks');
     const usersCollectionRef = collection(firestore, 'users');
 
-    let assigneeId = data.assigneeId || user.uid;
-    let userIds = [user.uid];
+    try {
+      let assigneeId = data.assigneeId || user.uid;
+      let userIds = [user.uid];
 
-    if (data.assigneeEmail && data.assigneeEmail !== user.email) {
-        const q = query(usersCollectionRef, where("email", "==", data.assigneeEmail));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const assignedUser = querySnapshot.docs[0];
-            assigneeId = assignedUser.id;
-            if (!userIds.includes(assigneeId)) {
-                userIds.push(assigneeId);
-            }
-        } else {
-            console.error("Assignee email not found");
-            return;
+      if (data.assigneeEmail && data.assigneeEmail !== user.email) {
+          const q = query(usersCollectionRef, where("email", "==", data.assigneeEmail));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+              const assignedUser = querySnapshot.docs[0];
+              assigneeId = assignedUser.id;
+              if (!userIds.includes(assigneeId)) {
+                  userIds.push(assigneeId);
+              }
+          } else {
+              toast({
+                title: "Error",
+                description: "Assignee email not found",
+                variant: "destructive",
+              });
+              return;
+          }
+      } else {
+         if (!userIds.includes(assigneeId)) {
+              userIds.push(assigneeId);
+          }
+      }
+      
+      const taskData: any = {
+          ...data,
+          tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
+          userId: user.uid,
+          assigneeId: assigneeId,
+          userIds: userIds,
+          status: assigneeId !== user.uid ? 'Pending' : (editingTask?.status || data.status || 'Backlog'),
+      };
+      
+      // Remove undefined fields to avoid Firebase errors
+      Object.keys(taskData).forEach(key => {
+        if (taskData[key] === undefined) {
+          delete taskData[key];
         }
-    } else {
-       if (!userIds.includes(assigneeId)) {
-            userIds.push(assigneeId);
-        }
+      });
+      
+      if (editingTask) {
+          const taskDocRef = doc(tasksCollectionRef, editingTask.id);
+          await updateDoc(taskDocRef, taskData);
+          setEditingTask(null);
+          toast({
+            title: "Success!",
+            description: "Task updated successfully",
+          });
+      } else {
+          await addDoc(tasksCollectionRef, {...taskData, createdAt: new Date()});
+          toast({
+            title: "Success!",
+            description: "Task created successfully",
+          });
+      }
+      setOpenAddTask(false);
+    } catch (error: any) {
+      console.error("Error saving task:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save task. Check Firebase permissions in your Firebase Console.",
+        variant: "destructive",
+      });
     }
-    
-    const taskData = {
-        ...data,
-        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()) : [],
-        userId: user.uid,
-        assigneeId: assigneeId,
-        userIds: userIds,
-        status: assigneeId !== user.uid ? 'Pending' : (editingTask?.status || 'Backlog'),
-    };
-    
-    if (editingTask) {
-        const taskDocRef = doc(tasksCollectionRef, editingTask.id);
-        updateDocumentNonBlocking(taskDocRef, taskData);
-        setEditingTask(null);
-    } else {
-        addDocumentNonBlocking(tasksCollectionRef, {...taskData, createdAt: new Date()});
-    }
-    setOpenAddTask(false)
   }
 
   const handleEditTask = (task: Task) => {
@@ -263,16 +306,55 @@ export default function TasksPage() {
   
   const columns = ["Backlog", "To-Do", "In Progress", "Review", "Completed"];
   
-  const onDragEnd = (result: DropResult) => {
+  const onDragStart = () => {
+    setIsDragging(true);
+  };
+
+  const onDragEnd = async (result: DropResult) => {
+    setIsDragging(false);
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
     
     const task = allTasks?.find(t => t.id === draggableId);
-    if (task && task.status !== destination.droppableId) {
+    
+    if (destination.droppableId === 'delete') {
+      try {
         const taskDocRef = doc(firestore, 'tasks', draggableId);
-        updateDoc(taskDocRef, { status: destination.droppableId });
+        await deleteDoc(taskDocRef);
+        toast({
+          title: "Task Deleted!",
+          description: `"${task?.title}" has been deleted`,
+          variant: "destructive",
+        });
+      } catch (error: any) {
+        console.error("Error deleting task:", error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete task",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+    
+    if (task && task.status !== destination.droppableId) {
+        try {
+          const taskDocRef = doc(firestore, 'tasks', draggableId);
+          await updateDoc(taskDocRef, { status: destination.droppableId });
+          toast({
+            title: "Task Moved!",
+            description: `"${task.title}" moved to ${destination.droppableId}`,
+          });
+        } catch (error: any) {
+          console.error("Error moving task:", error);
+          toast({
+            title: "Error",
+            description: error.message || "Failed to move task",
+            variant: "destructive",
+          });
+        }
     }
   };
 
@@ -280,26 +362,47 @@ export default function TasksPage() {
   const renderTaskCard = (task: Task, index: number) => {
     const assignee = task.assigneeId ? userMap[task.assigneeId] : null;
     const avatar = PlaceHolderImages.find((img) => img.id === 'avatar1');
+    
+    const getPriorityColor = (priority: number) => {
+      if (priority <= 3) return 'border-red-500';
+      if (priority <= 7) return 'border-yellow-500';
+      return 'border-green-500';
+    };
+    
+    const getPriorityAccent = (priority: number) => {
+      if (priority <= 3) return 'from-red-500/10 to-transparent';
+      if (priority <= 7) return 'from-yellow-500/10 to-transparent';
+      return 'from-green-500/10 to-transparent';
+    };
+    
     return (
-        <Draggable draggableId={task.id} index={index}>
+        <Draggable key={task.id} draggableId={task.id} index={index}>
         {(provided, snapshot) => (
             <div
                 ref={provided.innerRef}
                 {...provided.draggableProps}
                 {...provided.dragHandleProps}
             >
-                <Card className={`transform transition-transform duration-300 hover:shadow-lg bg-background/80 ${snapshot.isDragging ? 'scale-105 shadow-xl' : 'hover:scale-105'}`}>
-                    <CardContent className="p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                        <span className="text-sm font-medium pr-2">{task.title}</span>
+                <Card className={`group cursor-grab active:cursor-grabbing transform transition-all duration-300 hover:shadow-xl bg-gradient-to-br from-background to-background/80 backdrop-blur-sm border-2 hover:border-primary/40 ${getPriorityColor(task.priority)} border-l-4 ${snapshot.isDragging ? 'scale-105 shadow-2xl border-primary rotate-2 ring-4 ring-primary/20' : 'hover:scale-[1.02]'} overflow-hidden relative`}>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${getPriorityAccent(task.priority)} pointer-events-none`} />
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
+                    
+                    <CardContent className="p-4 space-y-3 relative">
+                    <div className="flex justify-between items-start gap-2">
+                        <h3 className="text-sm font-bold leading-snug pr-2 group-hover:text-primary transition-colors flex-1 border-b-2 border-transparent group-hover:border-primary/30 pb-1">
+                          {task.title}
+                        </h3>
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all hover:bg-accent hover:rotate-90 duration-300">
                             <Icons.more className="h-4 w-4 text-muted-foreground" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleEditTask(task)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditTask(task)}>
+                              <Icons.edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => deleteTask(task.id)} className="text-destructive flex items-center gap-2">
                                 <Icons.trash className="h-4 w-4"/> Delete
@@ -308,10 +411,29 @@ export default function TasksPage() {
                         </DropdownMenu>
                     </div>
                     
-                    {task.description && <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>}
+                    {task.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed pl-2 border-l-2 border-muted/30">
+                        {task.description}
+                      </p>
+                    )}
 
-                    <div className="flex justify-between items-center">
-                        <Badge variant={getPriorityBadgeVariant(task.priority)}>
+                    {task.tags && task.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {task.tags.slice(0, 2).map((tag, idx) => (
+                          <span key={idx} className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium hover:bg-primary/20 transition-colors">
+                            {tag}
+                          </span>
+                        ))}
+                        {task.tags.length > 2 && (
+                          <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-full font-medium">
+                            +{task.tags.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center pt-1 border-t border-muted/20">
+                        <Badge variant={getPriorityBadgeVariant(task.priority)} className="transition-all hover:scale-110 shadow-sm font-semibold">
                             P{task.priority}
                         </Badge>
                         {assignee && avatar && (
@@ -321,25 +443,27 @@ export default function TasksPage() {
                                 <Image
                                         src={assignee.photoURL || avatar.imageUrl}
                                         alt={assignee.displayName || 'User avatar'}
-                                        width={24}
-                                        height={24}
-                                        className="rounded-full"
+                                        width={28}
+                                        height={28}
+                                        className="rounded-full hover:scale-125 transition-transform ring-2 ring-background hover:ring-primary shadow-md"
                                         data-ai-hint={avatar.imageHint}
                                     />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                <p>{assignee.displayName || assignee.email || 'Assignee'}</p>
+                                <p className="font-medium">{assignee.displayName || assignee.email || 'Assignee'}</p>
                                 </TooltipContent>
                             </Tooltip>
                             </TooltipProvider>
                         )}
                     </div>
                     {task.dueDate && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                            <Icons.calendar className="mr-1.5 h-3 w-3" />
-                            <span>
-                                {format(new Date(task.dueDate.seconds * 1000), "MMM d")}
-                                {` (${formatDistanceToNow(new Date(task.dueDate.seconds * 1000), { addSuffix: true })})`}
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 px-2 py-1.5 rounded-md">
+                            <Icons.calendar className="h-3.5 w-3.5 text-primary" />
+                            <span className="font-medium">
+                                {format(new Date(task.dueDate.seconds * 1000), "MMM d, yyyy")}
+                            </span>
+                            <span className="text-[10px] opacity-70">
+                                ({formatDistanceToNow(new Date(task.dueDate.seconds * 1000), { addSuffix: true })})
                             </span>
                     </div>
                     )}
@@ -385,12 +509,12 @@ export default function TasksPage() {
          <AiPrioritizeDialog onTaskCreate={onTaskSubmit} />
          <Dialog open={openAddTask} onOpenChange={handleOpenAddTask}>
             <DialogTrigger asChild>
-                <Button className="transition-transform hover:scale-105 active:scale-95">
-                    <Icons.add className="mr-2 h-5 w-5" />
+                <Button className="group transition-all hover:scale-105 active:scale-95 hover:shadow-lg">
+                    <Icons.add className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform" />
                     Add Task
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingTask ? 'Edit Task' : 'Add a new task'}</DialogTitle>
                 </DialogHeader>
@@ -399,7 +523,8 @@ export default function TasksPage() {
                     users={users || []}
                     userMap={userMap}
                     isLoadingUsers={isLoadingUsers}
-                    initialData={editingTask} 
+                    initialData={editingTask}
+                    onCancel={() => handleOpenAddTask(false)}
                 />
             </DialogContent>
         </Dialog>
@@ -418,11 +543,11 @@ export default function TasksPage() {
         </TabsList>
         <TabsContent value="board" className="pt-4">
              <div className="flex items-center gap-4 mb-8">
-                <div className="relative flex-1">
-                <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative flex-1 group">
+                <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input 
                     placeholder="Search tasks..." 
-                    className="pl-10" 
+                    className="pl-10 focus:ring-2 focus:ring-primary/20 transition-all" 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -473,45 +598,92 @@ export default function TasksPage() {
                     </Button>
                 )}
             </div>
-            <DragDropContext onDragEnd={onDragEnd}>
+            {!mounted || !enableDragDrop ? (
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 items-start">
                     {columns.map((status) => (
-                    <Droppable droppableId={status} key={status}>
-                        {(provided, snapshot) => (
-                        <div ref={provided.innerRef} {...provided.droppableProps} className="h-full">
-                            <Card className={`h-full bg-card/50 transition-colors ${snapshot.isDraggingOver ? 'bg-accent/20' : ''}`}>
-                                <CardHeader>
-                                    <CardTitle className="text-lg flex justify-between items-center">
-                                        <span>{status}</span>
-                                        <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                                            {isLoadingTasks ? <Icons.bot className="h-4 w-4 animate-spin"/> : filteredTasks.filter(t => t.status === status).length}
-                                        </span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex flex-col gap-4 min-h-[150px]">
-                                {isLoadingTasks ? (
-                                Array.from({length: 2}).map((_, i) => (
-                                    <Card key={i} className="p-4 space-y-3">
-                                    <Skeleton className="h-5 w-3/4"/>
-                                    <Skeleton className="h-4 w-full"/>
-                                    <div className="flex justify-between items-center">
-                                        <Skeleton className="h-6 w-12"/>
-                                        <Skeleton className="h-6 w-6 rounded-full"/>
-                                    </div>
-                                    </Card>
-                                ))
-                                ) : filteredTasks
-                                    .filter((task) => task.status === status)
-                                    .map((task, index) => renderTaskCard(task, index))}
-                                    {provided.placeholder}
-                                </CardContent>
-                            </Card>
-                        </div>
-                        )}
-                    </Droppable>
+                        <Card key={status} className="h-full bg-card/50">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex justify-between items-center">
+                                    <span>{status}</span>
+                                    <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                        <Icons.bot className="h-4 w-4 animate-spin"/>
+                                    </span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-4 min-h-[150px]">
+                                <Skeleton className="h-24 w-full"/>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
-            </DragDropContext>
+            ) : (
+                <div className="space-y-4">
+                <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 items-start">
+                        {columns.map((status) => (
+                        <Droppable droppableId={status} key={status} isDropDisabled={false} isCombineEnabled={false} ignoreContainerClipping={false}>
+                            {(provided, snapshot) => (
+                            <div ref={provided.innerRef} {...provided.droppableProps} className="h-full">
+                                <Card className={`h-full bg-card/50 transition-all duration-300 ${snapshot.isDraggingOver ? 'bg-primary/10 ring-2 ring-primary scale-105' : ''}`}>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg flex justify-between items-center">
+                                            <span>{status}</span>
+                                            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                                {isLoadingTasks ? <Icons.bot className="h-4 w-4 animate-spin"/> : filteredTasks.filter(t => t.status === status).length}
+                                            </span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-col gap-4 min-h-[150px]">
+                                    {isLoadingTasks ? (
+                                    Array.from({length: 2}).map((_, i) => (
+                                        <Card key={i} className="p-4 space-y-3">
+                                        <Skeleton className="h-5 w-3/4"/>
+                                        <Skeleton className="h-4 w-full"/>
+                                        <div className="flex justify-between items-center">
+                                            <Skeleton className="h-6 w-12"/>
+                                            <Skeleton className="h-6 w-6 rounded-full"/>
+                                        </div>
+                                        </Card>
+                                    ))
+                                    ) : filteredTasks
+                                        .filter((task) => task.status === status)
+                                        .map((task, index) => renderTaskCard(task, index))}
+                                        {provided.placeholder}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            )}
+                        </Droppable>
+                        ))}
+                    </div>
+                    
+                    {isDragging && (
+                      <Droppable droppableId="delete" isDropDisabled={false} isCombineEnabled={false} ignoreContainerClipping={false}>
+                        {(provided, snapshot) => (
+                          <div 
+                            ref={provided.innerRef} 
+                            {...provided.droppableProps}
+                            className={`mt-6 p-8 border-4 border-dashed rounded-xl transition-all duration-300 flex items-center justify-center gap-4 ${
+                              snapshot.isDraggingOver 
+                                ? 'bg-destructive/20 border-destructive scale-105 shadow-xl' 
+                                : 'bg-destructive/5 border-destructive/30 hover:border-destructive/50'
+                            }`}
+                          >
+                            <Icons.trash className={`h-12 w-12 transition-all ${snapshot.isDraggingOver ? 'text-destructive animate-bounce' : 'text-destructive/50'}`} />
+                            <div className="text-center">
+                              <p className={`text-lg font-semibold transition-colors ${snapshot.isDraggingOver ? 'text-destructive' : 'text-destructive/70'}`}>
+                                {snapshot.isDraggingOver ? 'Release to Delete' : 'Drag Here to Delete'}
+                              </p>
+                              <p className="text-sm text-muted-foreground">This action cannot be undone</p>
+                            </div>
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    )}
+                </DragDropContext>
+                </div>
+            )}
         </TabsContent>
         <TabsContent value="inbox" className="pt-4">
             <Card>

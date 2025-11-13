@@ -24,10 +24,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "./ui/calendar";
 import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
+  status: z.string().default("Backlog"),
   priority: z.coerce.number().min(1).max(10),
   priorityReason: z.string().optional(),
   dueDate: z.date().optional(),
@@ -58,9 +60,10 @@ interface AddTaskFormProps {
   userMap: Record<string, any>;
   isLoadingUsers: boolean;
   initialData?: Task | null;
+  onCancel?: () => void;
 }
 
-export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, initialData }: AddTaskFormProps) {
+export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, initialData, onCancel }: AddTaskFormProps) {
   const { toast } = useToast();
   const [isPrioritizing, setIsPrioritizing] = useState(false);
 
@@ -69,6 +72,7 @@ export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, init
     defaultValues: {
       title: "",
       description: "",
+      status: "Backlog",
       priority: 5,
       assigneeEmail: "",
       tags: "",
@@ -81,6 +85,7 @@ export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, init
       form.reset({
         title: initialData.title,
         description: initialData.description || '',
+        status: initialData.status || 'Backlog',
         priority: initialData.priority,
         dueDate: initialData.dueDate ? new Date(initialData.dueDate.seconds * 1000) : undefined,
         assigneeId: initialData.assigneeId,
@@ -91,6 +96,7 @@ export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, init
         form.reset({
             title: "",
             description: "",
+            status: "Backlog",
             priority: 5,
             priorityReason: "",
             dueDate: undefined,
@@ -143,7 +149,7 @@ export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, init
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
         <FormField
           control={form.control}
           name="title"
@@ -166,7 +172,7 @@ export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, init
               <FormControl>
                 <Textarea
                   placeholder="Add more details about the task..."
-                  className="resize-y"
+                  className="resize-none h-[70px]"
                   {...field}
                 />
               </FormControl>
@@ -176,6 +182,30 @@ export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, init
         />
         
         <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Backlog">📋 Backlog</SelectItem>
+                      <SelectItem value="To-Do">📝 To-Do</SelectItem>
+                      <SelectItem value="In Progress">⚙️ In Progress</SelectItem>
+                      <SelectItem value="Review">👀 Review</SelectItem>
+                      <SelectItem value="Completed">✅ Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
             control={form.control}
             name="dueDate"
@@ -217,20 +247,21 @@ export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, init
                 </FormItem>
             )}
             />
-            <FormField
-                control={form.control}
-                name="assigneeEmail"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Assign to (Email)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., teammate@example.com" {...field} disabled={isLoadingUsers} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
         </div>
+
+        <FormField
+            control={form.control}
+            name="assigneeEmail"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Assign to (Email)</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g., teammate@example.com" {...field} disabled={isLoadingUsers} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
 
         <FormField
           control={form.control}
@@ -288,7 +319,12 @@ export function AddTaskForm({ onTaskSubmit, users, userMap, isLoadingUsers, init
           )}
         />
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-3">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
           <Button type="submit">{initialData ? 'Update Task' : 'Add Task'}</Button>
         </div>
       </form>

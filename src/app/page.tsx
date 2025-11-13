@@ -36,9 +36,9 @@ export default function LandingPage() {
       
       <header className="container z-40">
         <div className="flex h-20 items-center justify-between py-6">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            <Icons.logo className="h-8 w-8" />
-            WorkSync
+          <Link href="/" className="flex items-center gap-1 font-bold text-xl">
+            <Icons.logo />
+            <span style={{ color: '#FF4F58' }}>WorkSync</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Button variant="ghost" asChild>
