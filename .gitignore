@@ -47,4 +47,4 @@ firebase-debug.log
 **/node_modules
 
 # Ignore local Replit data
-.local/
+.local/"config.ts" 
