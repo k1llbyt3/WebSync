@@ -45,7 +45,6 @@ const WorkSyncLogo = (props: React.HTMLAttributes<HTMLDivElement> & { className?
       alt="S Logo"
       width={28}
       height={28}
-      style={{ objectFit: 'contain' }}
       priority
     />
   </div>
@@ -87,5 +86,3 @@ export const Icons = {
   listChecks: ListChecks,
   inbox: Inbox,
 }
-
-    
