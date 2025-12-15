@@ -29,8 +29,8 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get, list: if isSignedIn();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource.data.id == userId;
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId) && resource.data.uid == userId;
       allow delete: if isOwner(userId) && resource != null;
     }
 
@@ -46,14 +46,17 @@ service cloud.firestore {
       }
 
       allow get: if isSignedIn() && request.auth.uid in resource.data.userIds;
-      allow list: if isSignedIn() && request.query.where[0][0] == 'userIds' && request.query.where[0][1] == 'array-contains' && request.query.where[0][2] == request.auth.uid;
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && isCreating();
       allow update: if isSignedIn() && (isCreator() || isAssignee());
       allow delete: if isSignedIn() && isCreator();
     }
     
     match /users/{userId}/reminders/{reminderId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource.data.userId == userId;
+      allow delete: if isOwner(userId) && resource.data.userId == userId;
     }
 
     match /users/{userId}/meetings/{meetingId} {
