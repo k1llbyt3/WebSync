@@ -1,4 +1,5 @@
 
+import { cn } from "@/lib/utils"
 import Image from 'next/image'
 import {
   type LucideIcon,
@@ -34,17 +35,19 @@ import {
   Eye,
   ListChecks,
   Inbox,
+  Target,
+  Wand2,
 } from 'lucide-react'
 
 export type Icon = LucideIcon
 
 const WorkSyncLogo = (props: React.HTMLAttributes<HTMLDivElement> & { className?: string }) => (
-  <div className={props.className} style={{ display: 'inline-flex', alignItems: 'center' }}>
+  <div className={cn("relative h-10 w-10", props.className)} style={{ display: 'inline-flex', alignItems: 'center' }}>
     <Image
       src="/s-logo.png"
       alt="S Logo"
-      width={28}
-      height={28}
+      fill
+      className="object-contain" // Use fill + object-contain for flexible sizing via className
       priority
     />
   </div>
@@ -85,4 +88,6 @@ export const Icons = {
   eye: Eye,
   listChecks: ListChecks,
   inbox: Inbox,
+  target: Target,
+  wand: Wand2,
 }
