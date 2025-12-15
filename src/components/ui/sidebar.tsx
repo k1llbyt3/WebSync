@@ -176,7 +176,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { isMobile, state, openMobile, setOpenMobile, setOpen } = useSidebar()
 
     if (collapsible === "none") {
       return (
@@ -199,7 +199,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className="w-[--sidebar-width] bg-black/60 backdrop-blur-2xl p-0 text-white border-r border-white/10 [&>button]:hidden"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -214,26 +214,26 @@ const Sidebar = React.forwardRef<
     }
 
     return (
+      <div
+        ref={ref}
+        className={cn(
+          "group/sidebar relative hidden md:flex flex-col flex-shrink-0 text-white transition-all duration-300 ease-in-out border-r border-white/10 bg-black/60 backdrop-blur-2xl z-50",
+          state === 'expanded' ? 'w-[16rem] min-w-[16rem]' : 'w-[4rem] min-w-[4rem]',
+          className
+        )}
+        data-state={state}
+        data-collapsible={state === "collapsed" ? collapsible : ""}
+        data-variant={variant}
+        data-side={side}
+        {...props}
+      >
         <div
-            ref={ref}
-            className={cn(
-            "group/sidebar relative hidden md:flex flex-col text-sidebar-foreground transition-all duration-300 ease-in-out border-r border-border/80 bg-background/60 backdrop-blur-lg",
-            state === 'expanded' ? 'w-[16rem]' : 'w-[4rem]',
-            className
-            )}
-            data-state={state}
-            data-collapsible={state === "collapsed" ? collapsible : ""}
-            data-variant={variant}
-            data-side={side}
-            {...props}
+          data-sidebar="sidebar"
+          className="flex h-full w-full flex-col"
         >
-            <div
-                data-sidebar="sidebar"
-                className="flex h-full w-full flex-col"
-            >
-                {children}
-            </div>
+          {children}
         </div>
+      </div>
     )
   }
 )
@@ -471,7 +471,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[[data-state=collapsed]]:h-10 group-data-[[data-state=collapsed]]:w-10 group-data-[[data-state=collapsed]]:justify-center group-data-[[data-state=collapsed]]:p-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-white/10 data-[active=true]:font-bold data-[active=true]:text-white data-[active=true]:shadow-[0_0_15px_rgba(124,58,237,0.5)] data-[active=true]:border-l-2 data-[active=true]:border-purple-500 group-data-[[data-state=collapsed]]:h-10 group-data-[[data-state=collapsed]]:w-10 group-data-[[data-state=collapsed]]:justify-center group-data-[[data-state=collapsed]]:p-0",
   {
     variants: {
       variant: {
@@ -573,7 +573,7 @@ const SidebarMenuAction = React.forwardRef<
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[[data-state=collapsed]]:hidden",
         showOnHover &&
-          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
+        "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
         className
       )}
       {...props}
@@ -720,4 +720,3 @@ export {
   useSidebar,
 }
 
-    

@@ -12,6 +12,8 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { LogoutButton } from "@/components/logout-button";
+import { FocusModeDialog } from "@/components/focus-mode";
+import { MagicParser } from "@/components/magic-parser";
 
 const navItems = [
   {
@@ -65,6 +67,12 @@ export function MainNav() {
           </SidebarMenuButton>
         </SidebarMenuItem>
       ))}
+      <SidebarMenuItem>
+        <FocusModeDialog />
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <MagicParser />
+      </SidebarMenuItem>
       <SidebarMenuItem>
         <LogoutButton />
       </SidebarMenuItem>
