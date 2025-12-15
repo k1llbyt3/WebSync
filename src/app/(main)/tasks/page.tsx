@@ -13,8 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Icons } from "@/components/icons";
-import { Filter, Flame } from "lucide-react";
+import { Filter, Flame, X, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCollection, useFirebase } from "@/firebase";
 import {
@@ -42,7 +47,7 @@ import {
 import { StrictModeDroppable } from "@/components/strict-mode-droppable";
 import { useToast } from "@/hooks/use-toast";
 import { AddTaskForm, AddTaskFormValues, Task } from "@/components/add-task-form";
-import { AiPrioritizeDialog } from "@/app/(main)/tasks/ai-prioritize-dialog";
+// import { AiPrioritizeDialog } from "@/app/(main)/tasks/ai-prioritize-dialog"; // Removed
 import { InboxTask } from "@/app/(main)/tasks/inbox-task";
 import { BoardColumn } from "@/app/(main)/tasks/board-column";
 import {
@@ -52,6 +57,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export default function TasksPage() {
   const { firestore, user } = useFirebase();
@@ -78,15 +84,17 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
-  const [statusFilters, setStatusFilters] = useState<Record<string, boolean>>({
-    Backlog: true,
-    "To-Do": true,
-    "In Progress": true,
-    Review: true,
-    Completed: true,
-  });
+
+  // Multi-select filters
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
+    "To-Do", "In Progress", "Review", "Completed"
+  ]);
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([
+    "High", "Medium", "Low"
+  ]);
+
   const [isDragging, setIsDragging] = useState(false);
-  const [focusHighPriority, setFocusHighPriority] = useState(false); // NEW
+  const [focusHighPriority, setFocusHighPriority] = useState(false); // Can keep or remove, but user asked for "Filters" tab to handle things. We'll leave it but maybe hide UI if redundant. Actually, user asked "no need to make seperate tabs for priority put it under filters". So we will likely remove the separate button.
 
   useEffect(() => setMounted(true), []);
 
@@ -165,6 +173,7 @@ export default function TasksPage() {
           assigneeId !== user.uid
             ? "Pending"
             : editingTask?.status || data.status || "Backlog",
+        dueDate: data.dueDate || null,
       };
 
       if (editingTask) {
@@ -203,6 +212,19 @@ export default function TasksPage() {
     if (!v) setEditingTask(null);
   };
 
+  // Helpers for Filters
+  const toggleStatus = (s: string) => {
+    setSelectedStatuses(prev =>
+      prev.includes(s) ? prev.filter(i => i !== s) : [...prev, s]
+    );
+  };
+
+  const togglePriority = (p: string) => {
+    setSelectedPriorities(prev =>
+      prev.includes(p) ? prev.filter(i => i !== p) : [...prev, p]
+    );
+  };
+
   const handleAcceptTask = (task: Task) =>
     updateDocumentNonBlocking(doc(collection(firestore, "tasks"), task.id), {
       status: "Backlog",
@@ -217,7 +239,7 @@ export default function TasksPage() {
     });
   };
 
-  // Filter UI
+  // Filter Logic
   const baseFilteredTasks = useMemo(() => {
     if (!myTasks) return [];
     const result = myTasks.filter((task) => {
@@ -225,16 +247,23 @@ export default function TasksPage() {
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const statusMatch = statusFilters[task.status];
+      const statusMatch = selectedStatuses.includes(task.status);
       const projectMatch = projectFilter
         ? (task.tags || []).includes(projectFilter)
         : true;
 
-      return searchMatch && statusMatch && projectMatch;
+      // Priority Match
+      let priorityLevel = "Low";
+      if (task.priority <= 3) priorityLevel = "High";
+      else if (task.priority <= 7) priorityLevel = "Medium";
+
+      const priorityMatch = selectedPriorities.includes(priorityLevel);
+
+      return searchMatch && statusMatch && projectMatch && priorityMatch;
     });
 
     return result.sort((a, b) => a.priority - b.priority);
-  }, [myTasks, searchQuery, statusFilters, projectFilter]);
+  }, [myTasks, searchQuery, selectedStatuses, projectFilter, selectedPriorities]);
 
   // Apply "Focus: High Priority" filter
   const filteredTasks = useMemo(
@@ -246,7 +275,7 @@ export default function TasksPage() {
   );
 
   // Columns
-  const columns = ["Backlog", "To-Do", "In Progress", "Review", "Completed"];
+  const columns = ["To-Do", "In Progress", "Review", "Completed"];
 
   const onDragStart = () => setIsDragging(true);
 
@@ -276,89 +305,104 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-6 relative">
+    <div className="flex h-full flex-col gap-6 relative p-0">
       {/* Header */}
-      <div className="glass-panel rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">Task Board</h1>
+      <div className="glass-panel rounded-3xl px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl shadow-black/5 border-white/10">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">Task Board</h1>
             {highPriorityCount > 0 && (
-              <Badge className="bg-red-500/90 text-white flex items-center gap-1">
-                <Flame className="h-3 w-3" />
+              <Badge className="bg-red-500/10 text-red-400 border-red-500/20 flex items-center gap-1.5 px-3 py-1 text-xs">
+                <Flame className="h-3.5 w-3.5" />
                 {highPriorityCount} High Priority
               </Badge>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="px-2 py-1 rounded-full bg-background/60 border border-border/60">
-              Total: <span className="font-semibold">{totalTasks}</span>
-            </span>
-            <span className="px-2 py-1 rounded-full bg-background/60 border border-border/60">
-              Visible:{" "}
-              <span className="font-semibold">{filteredTasks.length}</span>
-            </span>
-            <div className="flex items-center gap-2 bg-muted/10 px-2 py-1 rounded-full border border-border/50">
-              <span className="text-[10px] font-semibold uppercase tracking-wider">
-                Priority Guide
-              </span>
-              <Badge
-                variant="outline"
-                className="text-[10px] border-red-500 text-red-500 bg-red-500/10"
-              >
-                1–3 High
-              </Badge>
-              <Badge
-                variant="outline"
-                className="text-[10px] border-amber-500 text-amber-500 bg-amber-500/10"
-              >
-                4–7 Med
-              </Badge>
-              <Badge
-                variant="outline"
-                className="text-[10px] border-emerald-500 text-emerald-500 bg-emerald-500/10"
-              >
-                8–10 Low
-              </Badge>
-            </div>
-          </div>
+          <p className="text-muted-foreground text-sm">Manage, track, and collaborate on your tasks.</p>
         </div>
 
         {/* Right Header Controls */}
-        <div className="flex flex-col gap-2 w-full sm:w-auto items-stretch sm:items-end">
-          {/* Focus Toggle */}
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant={focusHighPriority ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFocusHighPriority((v) => !v)}
-              className={`flex items-center gap-2 rounded-full px-3 h-9 ${
-                focusHighPriority
-                  ? "bg-red-500 text-white shadow-lg shadow-red-500/30"
-                  : "bg-background/70 backdrop-blur border-border/60"
-              }`}
-            >
-              <Flame className="h-4 w-4" />
-              <span className="text-xs font-semibold">
-                {focusHighPriority ? "Focusing High Priority" : "Focus High Priority"}
-              </span>
-            </Button>
-          </div>
+        <div className="flex flex-col gap-3 w-full sm:w-auto items-stretch sm:items-end">
+          <div className="flex items-center gap-3">
+            {/* Filter Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 transition-all backdrop-blur-md">
+                  <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Filters
+                  {(selectedStatuses.length < 4 || selectedPriorities.length < 3) && (
+                    <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center bg-primary text-primary-foreground rounded-full text-[10px]">
+                      {(4 - selectedStatuses.length) + (3 - selectedPriorities.length)}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-5 glass-panel border-white/20 rounded-2xl shadow-2xl">
+                <div className="space-y-5">
+                  {/* Status Section */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Status</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {["To-Do", "In Progress", "Review", "Completed"].map(status => {
+                        const isSelected = selectedStatuses.includes(status);
+                        return (
+                          <div
+                            key={status}
+                            onClick={() => toggleStatus(status)}
+                            className={cn(
+                              "cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium border transition-all select-none flex items-center gap-2",
+                              isSelected
+                                ? "bg-primary/20 border-primary/30 text-primary"
+                                : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                            )}
+                          >
+                            {status}
+                            {isSelected && <Check className="h-3 w-3" />}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
 
-          {/* Add Task Row */}
-          <div className="flex gap-2 w-full sm:w-auto">
-            <AiPrioritizeDialog onTaskCreate={onTaskSubmit} />
+                  {/* Priority Section */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Priority</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {["High", "Medium", "Low"].map(p => {
+                        const isSelected = selectedPriorities.includes(p);
+                        const colorClass = p === "High" ? "red" : p === "Medium" ? "amber" : "emerald";
+                        return (
+                          <div
+                            key={p}
+                            onClick={() => togglePriority(p)}
+                            className={cn(
+                              "cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium border transition-all select-none flex items-center gap-2",
+                              isSelected
+                                ? `bg-${colorClass}-500/20 border-${colorClass}-500/30 text-${colorClass}-500`
+                                : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                            )}
+                          >
+                            {p}
+                            {isSelected && <Check className="h-3 w-3" />}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <Dialog open={openAddTask} onOpenChange={handleOpenAddTask}>
               <DialogTrigger asChild>
-                <Button className="bg-primary/90 hover:bg-primary text-primary-foreground shadow-md rounded-full px-4">
+                <Button className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-lg shadow-primary/25 rounded-full px-5 h-10 transition-all hover:scale-105">
                   <Icons.add className="mr-2 h-4 w-4" />
                   New Task
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto glass-panel rounded-2xl">
-                <DialogHeader>
-                  <DialogTitle>
+              <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto bg-black/20 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl">
+                <DialogHeader className="mb-2">
+                  <DialogTitle className="text-xl">
                     {editingTask ? "Edit Task" : "Create New Task"}
                   </DialogTitle>
                 </DialogHeader>
@@ -378,109 +422,60 @@ export default function TasksPage() {
 
       {/* Views */}
       <Tabs defaultValue="board" className="flex-1 flex flex-col min-h-0">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-          {/* Tabs */}
-          <TabsList className="bg-background/60 backdrop-blur border border-border/60 rounded-full px-1">
+        <div className="flex items-center justify-between mb-6 px-1">
+          <TabsList className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-full p-1 h-auto">
             <TabsTrigger
               value="board"
-              className="rounded-full px-5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
             >
               My Board
             </TabsTrigger>
             <TabsTrigger
               value="inbox"
-              className="rounded-full px-5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
             >
               Inbox
               {!!assignedTasks?.length && (
-                <Badge className="ml-2 bg-primary-foreground/10 text-primary-foreground border-primary-foreground/40 h-5 min-w-[1.5rem]">
+                <Badge className="ml-2 bg-white/20 text-white border-none h-5 min-w-[1.2rem] px-1">
                   {assignedTasks.length}
                 </Badge>
               )}
             </TabsTrigger>
           </TabsList>
 
-          {/* Search + Filters */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative sm:w-64 flex-1">
-              <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search tasks..."
-                className="pl-9 rounded-full bg-background/70 border-border/60 backdrop-blur"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full bg-background/70 border-border/60 backdrop-blur"
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="glass-panel border-border/70 rounded-xl"
-              >
-                <DropdownMenuLabel>Status</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {Object.keys(statusFilters).map((status) => (
-                  <DropdownMenuCheckboxItem
-                    key={status}
-                    checked={statusFilters[status]}
-                    onCheckedChange={() =>
-                      setStatusFilters((prev) => ({
-                        ...prev,
-                        [status]: !prev[status],
-                      }))
-                    }
-                  >
-                    {status}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {projectFilter && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full"
-                onClick={() => {
-                  setProjectFilter(null);
-                  router.push("/tasks");
-                }}
-              >
-                {projectFilter}
-                <Icons.close className="ml-2 h-3 w-3" />
-              </Button>
-            )}
+          {/* Search */}
+          <div className="relative w-64">
+            <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              className="pl-9 rounded-2xl bg-black/10 border-white/5 hover:bg-black/20 focus:bg-black/30 transition-all backdrop-blur-md h-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
 
-        {/* Kanban Board */}
+        {/* Kanban Board - Fixed Grid Layout */}
         <TabsContent value="board" className="flex-1 min-h-0 pb-6 relative">
           {!mounted ? (
-            <div className="flex gap-6 overflow-x-auto h-full">
+            <div className="grid grid-cols-4 gap-6 h-full">
               {columns.map((c) => (
                 <div
                   key={c}
-                  className="w-[320px] p-4 rounded-2xl glass-panel border-dashed border-border/60"
+                  className="rounded-3xl glass-panel border-white/10 p-4 h-full"
                 >
-                  <Skeleton className="h-5 w-24 mb-4" />
-                  <Skeleton className="h-32 w-full rounded-xl" />
+                  <Skeleton className="h-6 w-32 mb-6 rounded-full" />
+                  <div className="space-y-4">
+                    <Skeleton className="h-32 w-full rounded-2xl" />
+                    <Skeleton className="h-32 w-full rounded-2xl" />
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-full glass-panel rounded-2xl p-4">
+            <div className="h-full rounded-3xl">
               <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-                <div className="flex gap-6 h-full overflow-x-auto pb-4 pr-4 custom-scrollbar">
+                <div className="grid grid-cols-4 gap-6 h-full min-h-0">
                   {columns.map((status) => (
                     <BoardColumn
                       key={status}
@@ -508,19 +503,17 @@ export default function TasksPage() {
                         fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]
                         flex items-center gap-3 px-8 py-4 rounded-full border shadow-xl
                         backdrop-blur-xl transition-all duration-300
-                        ${
-                          snapshot.isDraggingOver
-                            ? "opacity-100 scale-110 bg-red-500 text-white border-red-400 shadow-red-500/40"
-                            : isDragging
-                            ? "opacity-100 scale-100 bg-background/90 border-border text-muted-foreground"
+                        ${snapshot.isDraggingOver
+                          ? "opacity-100 scale-110 bg-red-500 text-white border-red-400 shadow-red-500/40"
+                          : isDragging
+                            ? "opacity-100 scale-100 bg-black/80 border-white/10 text-white"
                             : "opacity-0 scale-90 pointer-events-none"
                         }
                       `}
                     >
                       <Icons.trash
-                        className={`h-5 w-5 ${
-                          snapshot.isDraggingOver ? "animate-bounce" : ""
-                        }`}
+                        className={`h-5 w-5 ${snapshot.isDraggingOver ? "animate-bounce" : ""
+                          }`}
                       />
                       <span className="text-sm font-medium uppercase tracking-wide">
                         {snapshot.isDraggingOver
@@ -541,7 +534,7 @@ export default function TasksPage() {
           <div className="flex flex-col gap-4">
             {isLoadingTasks ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 rounded-xl w-full" />
+                <Skeleton key={i} className="h-24 rounded-2xl w-full" />
               ))
             ) : assignedTasks?.length ? (
               assignedTasks.map((task) => (
@@ -554,11 +547,11 @@ export default function TasksPage() {
                 />
               ))
             ) : (
-              <div className="glass-panel rounded-2xl border-dashed flex flex-col items-center justify-center py-16">
-                <div className="h-12 w-12 rounded-full flex items-center justify-center bg-muted/40 mb-4">
-                  <Icons.inbox className="h-6 w-6 text-muted-foreground" />
+              <div className="glass-panel rounded-3xl border-dashed border-white/10 flex flex-col items-center justify-center py-20">
+                <div className="h-16 w-16 rounded-full flex items-center justify-center bg-white/5 mb-6">
+                  <Icons.inbox className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <p className="font-medium text-lg">All caught up!</p>
+                <p className="font-bold text-xl mb-1">All caught up!</p>
                 <p className="text-sm text-muted-foreground">
                   No pending tasks assigned to you.
                 </p>

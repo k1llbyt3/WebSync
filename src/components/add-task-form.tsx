@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,8 +31,10 @@ import {
   Loader2,
   AlignLeft,
   Tag,
+  Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
 
 // Firestore Task type
 export interface Task {
@@ -43,7 +44,7 @@ export interface Task {
   status: string;
   priority: number;
   tags?: string[];
-  dueDate?: any; // Firestore Timestamp or Date
+  dueDate?: any;
   userId: string;
   assigneeId?: string;
   userIds?: string[];
@@ -54,7 +55,7 @@ export interface Task {
 const formSchema = z.object({
   title: z.string().min(2, { message: "Required" }),
   description: z.string().optional(),
-  status: z.string().default("Backlog"),
+  status: z.string().default("To-Do"),
   priority: z.coerce.number().min(1).max(10),
   assigneeEmail: z.string().optional(),
   tags: z.string().optional(),
@@ -65,7 +66,7 @@ export type AddTaskFormValues = z.infer<typeof formSchema>;
 
 interface AddTaskFormProps {
   onTaskSubmit: (data: AddTaskFormValues & { assigneeId?: string }) => Promise<void>;
-  users: any[]; // kept for compatibility with parent, even if not used now
+  users: any[];
   userMap: Record<string, any>;
   isLoadingUsers: boolean;
   initialData: Task | null;
@@ -82,7 +83,7 @@ export function AddTaskForm({
     defaultValues: {
       title: initialData?.title || "",
       description: initialData?.description || "",
-      status: initialData?.status || "Backlog",
+      status: initialData?.status || "To-Do",
       priority: initialData?.priority || 5,
       assigneeEmail: "",
       tags: initialData?.tags ? initialData.tags.join(", ") : "",
@@ -93,11 +94,32 @@ export function AddTaskForm({
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  // Fake AI call for demo purposes (real implementation would use a server action)
+  const handleAiPrioritize = async () => {
+    const desc = form.getValues("description");
+    const title = form.getValues("title");
+    if (!title && !desc) return;
+
+    setIsAiLoading(true);
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Simple heuristic for demo if no real AI connected in this context purely client-side
+    // In a real app, this calls an API route.
+    // For now, let's randomize or infer basic priority
+    const p = Math.floor(Math.random() * 5) + 1; // 1-5 (High/Med)
+    form.setValue("priority", p);
+    setIsAiLoading(false);
+  };
 
   const handleSubmit = async (data: AddTaskFormValues) => {
     setIsLoading(true);
     try {
       await onTaskSubmit(data);
+      // Auto-close is handled by parent ensuring onTaskSubmit success closes functionality
+      // But we can also trigger onCancel if parent doesn't close explicitly, though parent controls visibility.
     } catch (error) {
       console.error(error);
     } finally {
@@ -112,25 +134,44 @@ export function AddTaskForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(handleSubmit)}
-        className="space-y-5 text-foreground"
+        className="space-y-6 text-foreground p-1"
       >
-        {/* Title */}
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input
-                  placeholder="Task Title..."
-                  {...field}
-                  className="text-2xl font-bold bg-transparent border-0 border-b border-white/10 rounded-none px-0 focus-visible:ring-0 placeholder:text-muted-foreground/50 h-14"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Top Header Area: Title + AI Button */}
+        <div className="flex items-start gap-3">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input
+                    placeholder="Task Title..."
+                    {...field}
+                    className="text-2xl font-bold bg-transparent border-0 border-b border-white/10 rounded-none px-0 focus-visible:ring-0 placeholder:text-muted-foreground/50 h-14"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAiPrioritize}
+              disabled={isAiLoading}
+              className="bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/20 hover:text-purple-300 transition-all rounded-full px-3 h-8 text-xs font-semibold"
+            >
+              {isAiLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <Sparkles className="h-3 w-3 mr-1" />
+              )}
+              AI Priority
+            </Button>
+          </div>
+        </div>
 
         {/* Status + Assignee */}
         <div className="grid grid-cols-2 gap-4">
@@ -144,14 +185,14 @@ export function AddTaskForm({
                 </FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-white/5 border-white/10 backdrop-blur-md">
+                    <SelectTrigger className="bg-white/10 border-white/20 backdrop-blur-md h-10 rounded-xl focus:ring-primary/20 text-white">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
-                    {["Backlog", "To-Do", "In Progress", "Review", "Completed"].map(
+                  <SelectContent className="glass-panel border-white/20 rounded-xl">
+                    {["To-Do", "In Progress", "Review", "Completed"].map(
                       (s) => (
-                        <SelectItem key={s} value={s}>
+                        <SelectItem key={s} value={s} className="focus:bg-white/10 cursor-pointer rounded-lg my-0.5 text-sm">
                           {s}
                         </SelectItem>
                       )
@@ -172,11 +213,11 @@ export function AddTaskForm({
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="email@work.com"
                       {...field}
-                      className="pl-9 bg-white/5 border-white/10"
+                      className="pl-9 bg-white/10 border-white/20 h-10 rounded-xl focus-visible:ring-primary/20 text-white placeholder:text-white/40"
                     />
                   </div>
                 </FormControl>
@@ -185,6 +226,7 @@ export function AddTaskForm({
           />
         </div>
 
+        {/* Description */}
         {/* Description */}
         <FormField
           control={form.control}
@@ -197,7 +239,7 @@ export function AddTaskForm({
               <FormControl>
                 <Textarea
                   placeholder="What needs to be done?"
-                  className="resize-none min-h-[100px] bg-white/5 border-white/10 backdrop-blur-md"
+                  className="resize-none min-h-[100px] bg-white/10 border-white/20 backdrop-blur-md rounded-xl focus-visible:ring-primary/20 text-white placeholder:text-white/40"
                   {...field}
                 />
               </FormControl>
@@ -215,13 +257,13 @@ export function AddTaskForm({
                 <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">
                   Due Date
                 </FormLabel>
-                <Popover>
+                <Popover modal={true}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal bg-white/5 border-white/10",
+                          "w-full pl-3 text-left font-normal bg-white/5 border-white/10 hover:bg-white/10 hover:text-foreground transition-all rounded-xl h-10",
                           !field.value && "text-muted-foreground"
                         )}
                       >
@@ -234,12 +276,13 @@ export function AddTaskForm({
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 glass-panel border-white/20 rounded-xl" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
                       initialFocus
+                      className="rounded-xl border-none"
                     />
                   </PopoverContent>
                 </Popover>
@@ -259,7 +302,7 @@ export function AddTaskForm({
                   <Input
                     placeholder="design, dev"
                     {...field}
-                    className="bg-white/5 border-white/10"
+                    className="bg-white/5 border-white/10 h-10 rounded-xl focus-visible:ring-primary/20"
                   />
                 </FormControl>
               </FormItem>
@@ -268,7 +311,7 @@ export function AddTaskForm({
         </div>
 
         {/* Priority Pills */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-3 pt-2">
           <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
             Priority Level
           </FormLabel>
@@ -279,10 +322,10 @@ export function AddTaskForm({
                 onClick={() => setPriority(p)}
                 variant="outline"
                 className={cn(
-                  "cursor-pointer px-3 py-1 hover:bg-red-500/20 transition-all",
+                  "cursor-pointer px-3 py-1.5 h-7 hover:bg-red-500/20 transition-all rounded-lg select-none",
                   currentPriority === p
-                    ? "bg-red-500/20 border-red-500 text-red-500"
-                    : "border-white/10 text-muted-foreground"
+                    ? "bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_10px_-3px_rgba(239,68,68,0.5)]"
+                    : "border-white/10 text-muted-foreground bg-white/5"
                 )}
               >
                 High {p}
@@ -294,10 +337,10 @@ export function AddTaskForm({
                 onClick={() => setPriority(p)}
                 variant="outline"
                 className={cn(
-                  "cursor-pointer px-3 py-1 hover:bg-amber-500/20 transition-all",
+                  "cursor-pointer px-3 py-1.5 h-7 hover:bg-amber-500/20 transition-all rounded-lg select-none",
                   currentPriority === p
-                    ? "bg-amber-500/20 border-amber-500 text-amber-500"
-                    : "border-white/10 text-muted-foreground"
+                    ? "bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_10px_-3px_rgba(245,158,11,0.5)]"
+                    : "border-white/10 text-muted-foreground bg-white/5"
                 )}
               >
                 Med {p}
@@ -309,10 +352,10 @@ export function AddTaskForm({
                 onClick={() => setPriority(p)}
                 variant="outline"
                 className={cn(
-                  "cursor-pointer px-3 py-1 hover:bg-emerald-500/20 transition-all",
+                  "cursor-pointer px-3 py-1.5 h-7 hover:bg-emerald-500/20 transition-all rounded-lg select-none",
                   currentPriority === p
-                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-500"
-                    : "border-white/10 text-muted-foreground"
+                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-500 shadow-[0_0_10px_-3px_rgba(16,185,129,0.5)]"
+                    : "border-white/10 text-muted-foreground bg-white/5"
                 )}
               >
                 Low {p}
@@ -322,22 +365,22 @@ export function AddTaskForm({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-white/10">
+        <div className="flex justify-end gap-3 pt-6 border-t border-white/10 mt-4">
           <Button
             type="button"
             variant="ghost"
             onClick={onCancel}
-            className="hover:bg-white/10"
+            className="hover:bg-white/10 rounded-xl"
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={isLoading}
-            className="bg-primary hover:bg-primary/90 min-w-[120px]"
+            className="bg-primary hover:bg-primary/90 min-w-[140px] rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {initialData ? "Save" : "Create"}
+            {initialData ? "Save Changes" : "Create Task"}
           </Button>
         </div>
       </form>

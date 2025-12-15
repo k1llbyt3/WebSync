@@ -24,16 +24,15 @@ export default function MainLayout({
       <div className="relative flex min-h-screen flex-col">
         <div className="absolute inset-0 animated-gradient -z-10" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-repeat -z-10 opacity-[0.07]" />
-        
+
         <div className="flex flex-1">
           <Sidebar>
             <SidebarHeader>
-                <div className="flex items-center gap-2 p-2">
-                    <Link href="/" className="flex items-center gap-1 font-bold text-xl">
-                        <Icons.logo />
-                        <span style={{ color: '#FF4F58' }}>WorkSync</span>
-                    </Link>
-                </div>
+              <div className="flex items-center gap-2 p-2 transition-all duration-300 group-data-[state=collapsed]/sidebar:justify-center">
+                <Link href="/" className="flex items-center gap-1 font-bold text-xl">
+                  <Icons.logo className="h-10 w-auto" />
+                </Link>
+              </div>
               <UserNav />
             </SidebarHeader>
             <SidebarContent>
@@ -51,4 +50,3 @@ export default function MainLayout({
   );
 }
 
-    
