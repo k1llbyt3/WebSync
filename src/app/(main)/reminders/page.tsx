@@ -45,63 +45,63 @@ export type Reminder = {
 };
 
 const ReminderForm = ({ onSave, reminder, onOpenChange }: { onSave: (data: { title: string; reminderDate: Date }) => void, reminder?: Reminder | null, onOpenChange: (open: boolean) => void }) => {
-    const [title, setTitle] = useState(reminder?.title || "");
-    const [date, setDate] = useState<Date | undefined>(reminder ? new Date(reminder.reminderDate.seconds * 1000) : new Date());
-    const [time, setTime] = useState(reminder ? format(new Date(reminder.reminderDate.seconds * 1000), "HH:mm") : "09:00");
+  const [title, setTitle] = useState(reminder?.title || "");
+  const [date, setDate] = useState<Date | undefined>(reminder ? new Date(reminder.reminderDate.seconds * 1000) : new Date());
+  const [time, setTime] = useState(reminder ? format(new Date(reminder.reminderDate.seconds * 1000), "HH:mm") : "09:00");
 
-    const handleSave = () => {
-        if (!title || !date || !time) {
-            alert("Please fill out all fields.");
-            return;
-        }
-        const [hours, minutes] = time.split(':').map(Number);
-        const combinedDate = new Date(date);
-        combinedDate.setHours(hours, minutes);
-
-        onSave({ title, reminderDate: combinedDate });
-        onOpenChange(false);
+  const handleSave = () => {
+    if (!title || !date || !time) {
+      alert("Please fill out all fields.");
+      return;
     }
-    
-    return (
-        <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="date">Date</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !date && "text-muted-foreground"
-                            )}
-                            >
-                            <Icons.calendar className="mr-2 h-4 w-4" />
-                            {date ? format(date, "PPP") : <span>Pick a date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                            mode="single"
-                            selected={date}
-                            onSelect={setDate}
-                            initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="time">Time</Label>
-                    <Input id="time" type="time" value={time} onChange={e => setTime(e.target.value)} />
-                </div>
-            </div>
-             <Button onClick={handleSave}>{reminder ? "Save Changes" : "Add Reminder"}</Button>
+    const [hours, minutes] = time.split(':').map(Number);
+    const combinedDate = new Date(date);
+    combinedDate.setHours(hours, minutes);
+
+    onSave({ title, reminderDate: combinedDate });
+    onOpenChange(false);
+  }
+
+  return (
+    <div className="grid gap-4 py-4">
+      <div className="grid gap-2">
+        <Label htmlFor="title">Title</Label>
+        <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="date">Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <Icons.calendar className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-    )
+        <div className="grid gap-2">
+          <Label htmlFor="time">Time</Label>
+          <Input id="time" type="time" value={time} onChange={e => setTime(e.target.value)} />
+        </div>
+      </div>
+      <Button onClick={handleSave}>{reminder ? "Save Changes" : "Add Reminder"}</Button>
+    </div>
+  )
 }
 
 export default function RemindersPage() {
@@ -112,7 +112,7 @@ export default function RemindersPage() {
 
   const remindersCollectionRef = useMemoFirebase(
     () => (user ? collection(firestore, "users", user.uid, "reminders") : null),
-    [firestore, user]
+    [firestore, user?.uid]
   );
 
   const { data: reminders, isLoading: isLoadingReminders } =
@@ -134,55 +134,57 @@ export default function RemindersPage() {
       description: "The reminder has been removed.",
     });
   };
-  
+
   const handleSave = (data: { title: string; reminderDate: Date }) => {
-     if (!remindersCollectionRef || !user) return;
-     if (editingReminder) {
-         // Update
-         const reminderDocRef = doc(remindersCollectionRef, editingReminder.id);
-         updateDocumentNonBlocking(reminderDocRef, data);
-         toast({ title: "Reminder Updated" });
-     } else {
-         // Create
-         addDocumentNonBlocking(remindersCollectionRef, { ...data, userId: user.uid });
-         toast({ title: "Reminder Added" });
-     }
-     setEditingReminder(null);
+    if (!remindersCollectionRef || !user) return;
+    if (editingReminder) {
+      // Update
+      const reminderDocRef = doc(remindersCollectionRef, editingReminder.id);
+      updateDocumentNonBlocking(reminderDocRef, data);
+      toast({ title: "Reminder Updated" });
+    } else {
+      // Create
+      addDocumentNonBlocking(remindersCollectionRef, { ...data, userId: user.uid });
+      toast({ title: "Reminder Added" });
+    }
+    setEditingReminder(null);
   }
-  
+
   const handleOpenDialog = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
-        setEditingReminder(null);
+      setEditingReminder(null);
     }
   }
 
   const handleEditClick = (reminder: Reminder) => {
-      setEditingReminder(reminder);
-      setOpen(true);
+    setEditingReminder(reminder);
+    setOpen(true);
   }
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-8 relative overflow-hidden p-2 min-h-[calc(100vh-4rem)]">
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] -z-10" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] -z-10" />
       <div className="flex items-center justify-between">
         <div>
-            <h1 className="text-3xl font-bold">Your Reminders</h1>
-            <p className="text-muted-foreground">
+          <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">Your Reminders</h1>
+          <p className="text-muted-foreground mt-2 max-w-2xl">
             Never miss a deadline. Here are your upcoming reminders.
-            </p>
+          </p>
         </div>
         <Dialog open={open} onOpenChange={handleOpenDialog}>
-            <DialogTrigger asChild>
-                <Button>
-                    <Icons.add className="mr-2 h-4 w-4" /> Add Reminder
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingReminder ? 'Edit Reminder' : 'Add Reminder'}</DialogTitle>
-                </DialogHeader>
-                <ReminderForm onSave={handleSave} reminder={editingReminder} onOpenChange={handleOpenDialog} />
-            </DialogContent>
+          <DialogTrigger asChild>
+            <Button>
+              <Icons.add className="mr-2 h-4 w-4" /> Add Reminder
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingReminder ? 'Edit Reminder' : 'Add Reminder'}</DialogTitle>
+            </DialogHeader>
+            <ReminderForm onSave={handleSave} reminder={editingReminder} onOpenChange={handleOpenDialog} />
+          </DialogContent>
         </Dialog>
       </div>
 
@@ -233,22 +235,22 @@ export default function RemindersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                   <Button
+                  <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleEditClick(reminder)}
-                    >
+                  >
                     <Icons.edit className="h-5 w-5" />
                     <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button
+                  </Button>
+                  <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDelete(reminder.id)}
-                    >
+                  >
                     <Icons.trash className="h-5 w-5 text-destructive" />
                     <span className="sr-only">Delete Reminder</span>
-                    </Button>
+                  </Button>
                 </div>
               </Card>
             ))}
@@ -258,4 +260,3 @@ export default function RemindersPage() {
   );
 }
 
-    

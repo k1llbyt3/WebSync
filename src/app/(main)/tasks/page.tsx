@@ -46,6 +46,7 @@ import {
 } from "@hello-pangea/dnd";
 import { StrictModeDroppable } from "@/components/strict-mode-droppable";
 import { useToast } from "@/hooks/use-toast";
+import { useSoundEffects } from "@/hooks/use-sound-effects";
 import { AddTaskForm, AddTaskFormValues, Task } from "@/components/add-task-form";
 // import { AiPrioritizeDialog } from "@/app/(main)/tasks/ai-prioritize-dialog"; // Removed
 import { InboxTask } from "@/app/(main)/tasks/inbox-task";
@@ -64,13 +65,14 @@ export default function TasksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { playSound } = useSoundEffects();
 
   // Fetch Tasks where logged-in user is a member
   const myTasksQuery = useMemo(() => {
     if (!user) return null;
     const tasksCollection = collection(firestore, "tasks");
     return query(tasksCollection, where("userIds", "array-contains", user.uid));
-  }, [firestore, user]);
+  }, [firestore, user?.uid]);
 
   const { data: allTasks, isLoading: isLoadingTasks } =
     useCollection<Task>(myTasksQuery);
@@ -101,7 +103,26 @@ export default function TasksPage() {
   useEffect(() => {
     const project = searchParams.get("project");
     if (project) setProjectFilter(project);
-  }, [searchParams]);
+
+    const taskId = searchParams.get("taskId");
+    if (taskId) {
+      // Deep Link: Scroll and Highlight
+      const checkExist = setInterval(() => {
+        const element = document.getElementById(`task-${taskId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('ring-4', 'ring-primary', 'shadow-[0_0_50px_rgba(59,130,246,0.5)]');
+          setTimeout(() => {
+            element.classList.remove('ring-4', 'ring-primary', 'shadow-[0_0_50px_rgba(59,130,246,0.5)]');
+          }, 3000); // Highlight for 3s
+          clearInterval(checkExist);
+        }
+      }, 500);
+
+      // Timeout to stop looking
+      setTimeout(() => clearInterval(checkExist), 5000);
+    }
+  }, [searchParams, allTasks]);
 
   // Separate Owned Tasks and Assigned Tasks
   const { myTasks, assignedTasks } = useMemo(() => {
@@ -130,6 +151,28 @@ export default function TasksPage() {
     () => myTasks.filter((t) => t.priority <= 3).length,
     [myTasks]
   );
+
+  // Auto-update priority if due within 2 days
+  useEffect(() => {
+    if (!myTasks) return;
+
+    myTasks.forEach(task => {
+      if (!task.dueDate || task.status === 'Completed') return;
+
+      const due = new Date(task.dueDate.seconds * 1000);
+      const now = new Date();
+      const diffHours = (due.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      // If due within 48 hours and priority is not already "High" or Urgent (1-3)
+      // We set it to 1 (Urgent)
+      if (diffHours < 48 && diffHours > -24 && task.priority > 3) {
+        updateDocumentNonBlocking(doc(firestore, "tasks", task.id), {
+          priority: 1
+        });
+        // We don't toast here to avoid spamming the user on load
+      }
+    });
+  }, [myTasks, firestore]);
 
   // CREATE / UPDATE Tasks
   const onTaskSubmit = async (data: AddTaskFormValues & { assigneeId?: string }) => {
@@ -292,12 +335,15 @@ export default function TasksPage() {
 
     if (destination.droppableId === "delete") {
       await deleteDoc(doc(firestore, "tasks", draggableId));
+      playSound("delete");
       toast({ title: "Deleted", description: "Task removed" });
       return;
     }
 
     const task = allTasks?.find((t) => t.id === draggableId);
     if (task && task.status !== destination.droppableId) {
+      if (destination.droppableId === 'Completed') playSound("success");
+      else playSound("click");
       await updateDoc(doc(firestore, "tasks", draggableId), {
         status: destination.droppableId,
       });
@@ -305,9 +351,9 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-6 relative p-0">
+    <div className="flex h-full flex-col gap-6 relative z-10 p-0">
       {/* Header */}
-      <div className="glass-panel rounded-3xl px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl shadow-black/5 border-white/10">
+      <div className="glass-panel rounded-3xl px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl shadow-black/20 border-white/5 bg-gray-900/40 backdrop-blur-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">Task Board</h1>
@@ -327,7 +373,7 @@ export default function TasksPage() {
             {/* Filter Popover */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 transition-all backdrop-blur-md">
+                <Button variant="outline" className="rounded-full bg-gray-800/50 border-white/5 hover:bg-gray-700/50 transition-all backdrop-blur-md">
                   <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
                   Filters
                   {(selectedStatuses.length < 4 || selectedPriorities.length < 3) && (
@@ -337,7 +383,7 @@ export default function TasksPage() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-5 glass-panel border-white/20 rounded-2xl shadow-2xl">
+              <PopoverContent align="end" className="w-80 p-5 bg-gray-900/90 border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl">
                 <div className="space-y-5">
                   {/* Status Section */}
                   <div>
@@ -353,7 +399,7 @@ export default function TasksPage() {
                               "cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium border transition-all select-none flex items-center gap-2",
                               isSelected
                                 ? "bg-primary/20 border-primary/30 text-primary"
-                                : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                                : "bg-gray-800/50 border-white/5 text-muted-foreground hover:bg-gray-700/50"
                             )}
                           >
                             {status}
@@ -379,7 +425,7 @@ export default function TasksPage() {
                               "cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium border transition-all select-none flex items-center gap-2",
                               isSelected
                                 ? `bg-${colorClass}-500/20 border-${colorClass}-500/30 text-${colorClass}-500`
-                                : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                                : "bg-gray-800/50 border-white/5 text-muted-foreground hover:bg-gray-700/50"
                             )}
                           >
                             {p}
@@ -395,14 +441,14 @@ export default function TasksPage() {
 
             <Dialog open={openAddTask} onOpenChange={handleOpenAddTask}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-lg shadow-primary/25 rounded-full px-5 h-10 transition-all hover:scale-105">
+                <Button className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-lg shadow-primary/25 rounded-full px-5 h-10 transition-all hover:scale-105 z-10">
                   <Icons.add className="mr-2 h-4 w-4" />
                   New Task
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto bg-black/20 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl">
-                <DialogHeader className="mb-2">
-                  <DialogTitle className="text-xl">
+              <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto bg-gray-900/60 backdrop-blur-3xl border border-white/20 rounded-3xl p-8 shadow-2xl z-[150]">
+                <DialogHeader className="mb-6">
+                  <DialogTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                     {editingTask ? "Edit Task" : "Create New Task"}
                   </DialogTitle>
                 </DialogHeader>
@@ -421,9 +467,9 @@ export default function TasksPage() {
       </div>
 
       {/* Views */}
-      <Tabs defaultValue="board" className="flex-1 flex flex-col min-h-0">
+      <Tabs defaultValue="board" className="flex-1 flex flex-col min-h-0 relative z-0">
         <div className="flex items-center justify-between mb-6 px-1">
-          <TabsList className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-full p-1 h-auto">
+          <TabsList className="bg-transparent border border-white/10 rounded-full p-1 h-auto relative bg-black/20">
             <TabsTrigger
               value="board"
               className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
@@ -444,11 +490,11 @@ export default function TasksPage() {
           </TabsList>
 
           {/* Search */}
-          <div className="relative w-64">
-            <Icons.search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative w-72">
+            <Icons.search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 z-10 pointer-events-none" />
             <Input
-              placeholder="Search..."
-              className="pl-9 rounded-2xl bg-black/10 border-white/5 hover:bg-black/20 focus:bg-black/30 transition-all backdrop-blur-md h-9"
+              placeholder="Search tasks..."
+              className="pl-11 rounded-full bg-gray-900/40 border-white/10 hover:bg-black/40 focus:bg-black/60 transition-all backdrop-blur-md h-10 text-sm focus-visible:ring-primary/50"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -462,7 +508,7 @@ export default function TasksPage() {
               {columns.map((c) => (
                 <div
                   key={c}
-                  className="rounded-3xl glass-panel border-white/10 p-4 h-full"
+                  className="rounded-3xl bg-gray-900/20 border border-white/5 p-4 h-full"
                 >
                   <Skeleton className="h-6 w-32 mb-6 rounded-full" />
                   <div className="space-y-4">
@@ -475,50 +521,45 @@ export default function TasksPage() {
           ) : (
             <div className="h-full rounded-3xl">
               <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-                <div className="grid grid-cols-4 gap-6 h-full min-h-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 h-full min-h-0 pb-4">
                   {columns.map((status) => (
-                    <BoardColumn
-                      key={status}
-                      id={status}
-                      title={status}
-                      tasks={filteredTasks.filter((t) => t.status === status)}
-                      isDragging={isDragging}
-                      userMap={userMap}
-                      onEdit={handleEditTask}
-                      onDelete={deleteTask}
-                    />
+                    <div key={status} className="h-full min-h-0">
+                      <BoardColumn
+                        id={status}
+                        title={status}
+                        tasks={filteredTasks.filter((t) => t.status === status)}
+                        isDragging={isDragging}
+                        userMap={userMap}
+                        onEdit={handleEditTask}
+                        onDelete={deleteTask}
+                      />
+                    </div>
                   ))}
                 </div>
 
                 {/* Delete Drop Zone */}
                 <StrictModeDroppable droppableId="delete">
-                  {(
-                    provided: DroppableProvided,
-                    snapshot: DroppableStateSnapshot
-                  ) => (
+                  {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`
-                        fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]
-                        flex items-center gap-3 px-8 py-4 rounded-full border shadow-xl
-                        backdrop-blur-xl transition-all duration-300
-                        ${snapshot.isDraggingOver
+                      className={cn(
+                        "fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-8 py-4 rounded-full border shadow-xl backdrop-blur-xl transition-all duration-300",
+                        snapshot.isDraggingOver
                           ? "opacity-100 scale-110 bg-red-500 text-white border-red-400 shadow-red-500/40"
                           : isDragging
                             ? "opacity-100 scale-100 bg-black/80 border-white/10 text-white"
                             : "opacity-0 scale-90 pointer-events-none"
-                        }
-                      `}
+                      )}
                     >
                       <Icons.trash
-                        className={`h-5 w-5 ${snapshot.isDraggingOver ? "animate-bounce" : ""
-                          }`}
+                        className={cn(
+                          "h-5 w-5",
+                          snapshot.isDraggingOver && "animate-bounce"
+                        )}
                       />
                       <span className="text-sm font-medium uppercase tracking-wide">
-                        {snapshot.isDraggingOver
-                          ? "Drop to Delete"
-                          : "Drag Here to Delete"}
+                        {snapshot.isDraggingOver ? "Drop to Delete" : "Drag Here to Delete"}
                       </span>
                       {provided.placeholder}
                     </div>
@@ -547,7 +588,7 @@ export default function TasksPage() {
                 />
               ))
             ) : (
-              <div className="glass-panel rounded-3xl border-dashed border-white/10 flex flex-col items-center justify-center py-20">
+              <div className="bg-gray-900/40 rounded-3xl border-dashed border-white/10 flex flex-col items-center justify-center py-20">
                 <div className="h-16 w-16 rounded-full flex items-center justify-center bg-white/5 mb-6">
                   <Icons.inbox className="h-8 w-8 text-muted-foreground" />
                 </div>

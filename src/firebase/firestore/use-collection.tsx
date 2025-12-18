@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Query,
   onSnapshot,
@@ -47,7 +47,7 @@ export interface InternalQuery extends Query<DocumentData> {
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
 export function useCollection<T = any>(
-    targetRefOrQuery: (CollectionReference<DocumentData> | Query<DocumentData>) | null | undefined,
+  targetRefOrQuery: (CollectionReference<DocumentData> | Query<DocumentData>) | null | undefined,
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
@@ -55,6 +55,24 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+
+  // NUCLEAR FIX: Stabilize the reference
+  // We convert the query/ref to a stable string or memoized object to prevent infinite loops
+  // even if the parent component forgets to useMemo.
+  const refString = useMemo(() => {
+    if (!targetRefOrQuery) return null;
+    if ((targetRefOrQuery as any).type === 'collection') {
+      return (targetRefOrQuery as CollectionReference).path;
+    }
+    // For queries, we try to use the query itself if possible, but safely.
+    // Queries in Firestore SDK are immutable, but reference equality changes if recreated.
+    // We can check equality, but for the hook dependency, we need a primitive or stable ref.
+    // We will stick to the basic path for now, or trust the user. 
+    // BUT, given the crash, we'll try to rely on a manual deep compare effect or just
+    // returning early if the query is "equal" to previous.
+    // Actually, simplest fix for "new object every render" is:
+    return (targetRefOrQuery as any)._query?.path?.canonicalString() || (targetRefOrQuery as any).path || null;
+  }, [targetRefOrQuery]);
 
   useEffect(() => {
     if (!targetRefOrQuery) {
@@ -78,27 +96,18 @@ export function useCollection<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
-        // This logic extracts the path from either a ref or a query
-        const path: string =
-          (targetRefOrQuery as any).type === 'collection'
-            ? (targetRefOrQuery as CollectionReference).path
-            : (targetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
-
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path,
-        })
-
-        // Set the error state locally instead of throwing
-        setError(contextualError);
-        setData(null);
+      (err: FirestoreError) => {
+        // Ignore permission errors during development hot-reloads if needed, 
+        // but let's log real errors.
+        console.error("Firestore Error:", err);
+        setError(err);
         setIsLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [targetRefOrQuery]); // Re-run if the target query/reference changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refString]); // Dependency is now the STABLE string, not the object.
 
   // NOTE: The previous error check for '__memo' has been removed.
   // We rely on standard React usage of useMemo in the parent component.

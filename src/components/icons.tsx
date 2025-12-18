@@ -37,6 +37,7 @@ import {
   Inbox,
   Target,
   Wand2,
+  ChevronDown,
 } from 'lucide-react'
 
 export type Icon = LucideIcon
@@ -90,4 +91,5 @@ export const Icons = {
   inbox: Inbox,
   target: Target,
   wand: Wand2,
+  chevronDown: ChevronDown,
 }

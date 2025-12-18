@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -51,6 +51,8 @@ export interface Task {
   createdAt?: any;
 }
 
+import { useFirebase } from "@/firebase";
+
 // Form schema
 const formSchema = z.object({
   title: z.string().min(2, { message: "Required" }),
@@ -58,6 +60,7 @@ const formSchema = z.object({
   status: z.string().default("To-Do"),
   priority: z.coerce.number().min(1).max(10),
   assigneeEmail: z.string().optional(),
+  assigneeId: z.string().optional(), // Added
   tags: z.string().optional(),
   dueDate: z.date().optional(),
 });
@@ -78,6 +81,7 @@ export function AddTaskForm({
   initialData,
   onCancel,
 }: AddTaskFormProps) {
+  const { user } = useFirebase();
   const form = useForm<AddTaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -86,6 +90,7 @@ export function AddTaskForm({
       status: initialData?.status || "To-Do",
       priority: initialData?.priority || 5,
       assigneeEmail: "",
+      assigneeId: initialData?.assigneeId || "", // Added
       tags: initialData?.tags ? initialData.tags.join(", ") : "",
       dueDate: initialData?.dueDate
         ? new Date(initialData.dueDate.seconds * 1000)
@@ -114,10 +119,26 @@ export function AddTaskForm({
     setIsAiLoading(false);
   };
 
+  // Auto-assign to self if no assignee is selected
+  // Auto-assign to self if no assignee is selected
+  useEffect(() => {
+    if (user?.uid && !form.getValues("assigneeId")) {
+      form.setValue("assigneeId", user.uid, { shouldDirty: false });
+      if (user.email) {
+        form.setValue("assigneeEmail", user.email, { shouldDirty: false });
+      }
+    }
+  }, [user?.uid, user?.email]); // Minimal dependency array
+
   const handleSubmit = async (data: AddTaskFormValues) => {
     setIsLoading(true);
     try {
-      await onTaskSubmit(data);
+      // If assigneeId is still empty/undefined, ensure it defaults to current user
+      const finalData = {
+        ...data,
+        assigneeId: data.assigneeId || user?.uid,
+      };
+      await onTaskSubmit(finalData);
       // Auto-close is handled by parent ensuring onTaskSubmit success closes functionality
       // But we can also trigger onCancel if parent doesn't close explicitly, though parent controls visibility.
     } catch (error) {
@@ -209,7 +230,7 @@ export function AddTaskForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                  Assignee
+                  Assignee (Auto-assigned to you if empty)
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
@@ -276,7 +297,7 @@ export function AddTaskForm({
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 glass-panel border-white/20 rounded-xl" align="start">
+                  <PopoverContent className="w-auto p-0 glass-panel border-white/20 rounded-xl z-[9999]" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}

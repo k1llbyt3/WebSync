@@ -17,22 +17,6 @@ export const StrictModeDroppable = ({ children, ...props }: DroppableProps) => {
   }, []);
 
   if (!enabled) {
-    // Render a "mock" droppable during the first mount so the tree structure is consistent
-    const provided = {
-      innerRef: () => {},
-      droppableProps: {},
-      placeholder: null,
-    } as unknown as DroppableProvided;
-
-    const snapshot = {
-      isDraggingOver: false,
-    } as DroppableStateSnapshot;
-
-    if (typeof children === "function") {
-      // @hello-pangea/dnd uses render-props pattern
-      return <>{(children as any)(provided, snapshot)}</>;
-    }
-
     return null;
   }
 

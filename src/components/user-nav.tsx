@@ -28,7 +28,7 @@ export function UserNav() {
     const router = useRouter();
 
     const handleLogout = async () => {
-        router.push("/loading"); // Show loading screen
+        router.push("/"); // Redirect to landing page
         await signOut(auth);
         // After signout, auth state listener will likely redirect to login, but visual feedback is immediate
     };

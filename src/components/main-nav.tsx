@@ -12,35 +12,41 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { LogoutButton } from "@/components/logout-button";
-import { FocusModeDialog } from "@/components/focus-mode";
-import { MagicParser } from "@/components/magic-parser";
+// import { MagicParser } from "@/components/magic-parser";
 
 const navItems = [
+  // Core
   {
     href: "/dashboard",
     icon: Icons.dashboard,
     label: "Dashboard",
   },
   {
+    href: "/smart-brief",
+    icon: Icons.sun,
+    label: "Today's Focus",
+  },
+  {
     href: "/tasks",
     icon: Icons.tasks,
     label: "Tasks",
   },
+  // Removed Magic Mailbox
+
+
+  // Tools
   {
     href: "/meetings",
     icon: Icons.meetings,
     label: "Meeting Co-Pilot",
   },
   {
-    href: "/reminders",
-    icon: Icons.bell,
-    label: "Reminders",
-  },
-  {
     href: "/codegen",
     icon: Icons.codegen,
     label: "Dev Tools",
   },
+
+  // Settings
   {
     href: "/settings",
     icon: Icons.settings,
@@ -68,11 +74,9 @@ export function MainNav() {
         </SidebarMenuItem>
       ))}
       <SidebarMenuItem>
-        <FocusModeDialog />
+
       </SidebarMenuItem>
-      <SidebarMenuItem>
-        <MagicParser />
-      </SidebarMenuItem>
+      {/* MagicParser Removed */}
       <SidebarMenuItem>
         <LogoutButton />
       </SidebarMenuItem>

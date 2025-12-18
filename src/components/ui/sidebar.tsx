@@ -217,8 +217,10 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "group/sidebar relative hidden md:flex flex-col flex-shrink-0 text-white transition-all duration-300 ease-in-out border-r border-white/10 bg-black/60 backdrop-blur-2xl z-50",
-          state === 'expanded' ? 'w-[16rem] min-w-[16rem]' : 'w-[4rem] min-w-[4rem]',
+          "group/sidebar relative hidden md:flex flex-col flex-shrink-0 text-white transition-all duration-300 ease-in-out border-r border-white/5 bg-gradient-to-b from-black/80 to-black/60 backdrop-blur-2xl z-50 will-change-transform shadow-[5px_0_30px_rgba(0,0,0,0.5)]",
+          variant === "floating" && "sticky top-0 h-screen border-r border-white/5 bg-black/40 backdrop-blur-xl shadow-[10px_0_30px_rgba(0,0,0,0.3)]",
+          variant === "inset" && "p-4",
+          state === 'expanded' ? 'w-[16rem] min-w-[16rem]' : 'w-[5rem] min-w-[5rem]',
           className
         )}
         data-state={state}
@@ -526,7 +528,7 @@ const SidebarMenuButton = React.forwardRef<
       />
     )
 
-    if (!tooltip) {
+    if (!tooltip || state !== "collapsed" || isMobile) {
       return button
     }
 
@@ -542,7 +544,6 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={state !== "collapsed" || isMobile}
           {...tooltip}
         />
       </Tooltip>

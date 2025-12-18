@@ -8,7 +8,7 @@ export default function Loading() {
 
             <div className="relative z-10 flex flex-col items-center gap-8">
                 {/* Logo Container with Glass Effect */}
-                <div className="relative p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-2xl shadow-2xl ring-1 ring-white/10 animate-in fade-in zoom-in duration-700">
+                <div className="relative p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-2xl shadow-2xl ring-1 ring-white/10 animate-in fade-in zoom-in duration-300">
                     {/* Logo - using the asset as requested */}
                     <div className="relative w-24 h-24 overflow-hidden rounded-xl">
                         <Image

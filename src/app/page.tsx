@@ -1,9 +1,13 @@
 
 
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/icons";
+import { ConstellationEffect } from "@/components/ui/constellation-bg";
 
 const features = [
   {
@@ -30,20 +34,28 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden">
-      <div className="fixed inset-0 animated-gradient -z-10" />
+    <div className="flex min-h-screen flex-col overflow-x-hidden relative">
+      <div className="fixed inset-0 animated-gradient -z-20" />
       <div className="fixed inset-0 bg-[url('/grid.svg')] bg-repeat -z-10 opacity-[0.05]" />
+      <ConstellationEffect mouseInteraction={true} />
 
       <header className="container z-40">
-        <div className="flex h-20 items-center justify-between py-6">
-          <Link href="/" className="flex items-center gap-1 font-bold text-xl">
-            <span style={{ color: '#FF4F58' }}>WorkSync</span>
+        <div className="flex h-24 items-center justify-between py-6">
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/worksync-logo.png"
+              alt="WorkSync"
+              width={240}
+              height={240}
+              className="h-56 w-auto object-contain transition-all duration-300 hover:scale-105 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+              priority
+            />
           </Link>
           <nav className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
+            <Button variant="ghost" asChild className="text-white/80 hover:text-white hover:bg-white/10">
               <Link href="/login">Login</Link>
             </Button>
-            <Button asChild className="transition-transform hover:scale-105 shadow-lg shadow-primary/20">
+            <Button asChild className="transition-transform hover:scale-105 shadow-lg shadow-primary/20 bg-white text-black hover:bg-white/90 font-bold px-6 rounded-full">
               <Link href="/signup">Sign Up</Link>
             </Button>
           </nav>
@@ -51,7 +63,7 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <section className="container grid items-center gap-6 pb-8 pt-16 md:py-24 animate-fade-in-up">
+        <section className="container grid items-center gap-6 pb-8 pt-16 md:py-32 animate-fade-in-up min-h-[90vh]">
           <div className="mx-auto flex max-w-[980px] flex-col items-center gap-4 text-center">
             <h1 className="text-4xl font-extrabold leading-tight tracking-tighter md:text-6xl lg:text-7xl">
               Achieve Ultimate Productivity with{" "}
@@ -59,45 +71,48 @@ export default function LandingPage() {
                 WorkSync
               </span>
             </h1>
-            <p className="max-w-[700px] text-lg text-foreground/80">
+            <p className="max-w-[700px] text-xl text-foreground/80 mt-6 leading-relaxed">
               Your intelligent partner for task management, meeting analysis,
               and code generation. Let AI handle the noise, so you can focus on
               the flow.
             </p>
           </div>
-          <div className="mx-auto flex w-full max-w-sm items-center justify-center space-x-4 mt-6">
-            <Button asChild size="lg" className="transition-transform hover:scale-105 shadow-lg shadow-primary/20">
+          <div className="mx-auto flex w-full max-w-sm items-center justify-center space-x-4 mt-8">
+            <Button asChild size="lg" className="h-14 px-8 text-lg transition-transform hover:scale-105 shadow-lg shadow-primary/20">
               <Link href="/signup">Get Started for Free</Link>
             </Button>
           </div>
         </section>
 
-        <section className="container my-20">
-          <div className="relative">
-            <div className="absolute top-1/2 left-1/2 w-[80%] h-[400px] -translate-x-1/2 -translate-y-1/2 bg-primary/10 rounded-full blur-[120px] -z-10" />
-            <div className="mx-auto mb-12 flex max-w-[980px] flex-col items-center gap-2 text-center animate-fade-in-up">
-              <h2 className="text-3xl font-extrabold leading-tight tracking-tighter md:text-4xl">
-                Features
-              </h2>
-              <p className="max-w-[700px] text-lg text-foreground/80">
-                Everything you need to streamline your workflow and boost efficiency.
-              </p>
-            </div>
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              {features.map((feature, i) => (
-                <Link href="/signup" key={feature.title} className="block group">
-                  <Card className="h-full transition-all duration-300 group-hover:shadow-[0_0_20px_5px] group-hover:shadow-primary/50 group-hover:-translate-y-2">
-                    <CardHeader className="flex flex-col items-center text-center">
+        {/* Deep Scroll Section: Space Modules */}
+        <section className="container my-40 min-h-screen relative">
+
+
+          <div className="mx-auto mb-20 flex max-w-[980px] flex-col items-center gap-4 text-center">
+            <h2 className="text-4xl font-extrabold leading-tight tracking-tighter md:text-5xl text-white">
+              Mission Control Modules
+            </h2>
+            <p className="max-w-[700px] text-lg text-white/60">
+              Deploying advanced tools to streamline your workflow.
+            </p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 pb-40">
+            {features.map((feature, i) => (
+              <Link href="/signup" key={feature.title} className="block group">
+                <Card className="h-full bg-black/40 backdrop-blur-xl border-white/10 transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] group-hover:-translate-y-2 group-hover:border-purple-500/50">
+                  <CardHeader className="flex flex-col items-center text-center">
+                    <div className="p-4 rounded-full bg-white/5 group-hover:bg-purple-500/10 transition-colors">
                       {feature.icon}
-                      <CardTitle className="mt-4">{feature.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-center text-muted-foreground">
-                      {feature.description}
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+                    </div>
+                    <CardTitle className="mt-4 text-white group-hover:text-purple-300 transition-colors">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center text-white/50 group-hover:text-white/80 transition-colors">
+                    {feature.description}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         </section>
       </main>

@@ -234,13 +234,10 @@ export default function SignupPage() {
                 Create Account <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
 
-              <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/10" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-transparent px-2 text-white/50 font-medium backdrop-blur-sm">Or join with</span>
-                </div>
+              <div className="flex items-center gap-4 my-2">
+                <div className="h-px bg-white/10 flex-1" />
+                <span className="text-xs uppercase text-white/50 font-medium">Or join with</span>
+                <div className="h-px bg-white/10 flex-1" />
               </div>
 
               <Button

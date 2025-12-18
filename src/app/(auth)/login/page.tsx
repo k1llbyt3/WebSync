@@ -170,13 +170,10 @@ export default function LoginPage() {
                 Sign In <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
 
-              <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/10" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-transparent px-2 text-white/50 font-medium backdrop-blur-sm">Or continue with</span>
-                </div>
+              <div className="flex items-center gap-4 my-4">
+                <div className="flex-1 border-t border-white/10"></div>
+                <span className="text-xs uppercase text-white/50 font-medium">Or continue with</span>
+                <div className="flex-1 border-t border-white/10"></div>
               </div>
 
               <Button
