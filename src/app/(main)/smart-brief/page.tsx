@@ -116,7 +116,10 @@ export default function SmartBriefPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
             >
-                <button className="px-8 py-3 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold shadow-lg shadow-orange-500/20 hover:scale-105 transition-transform">
+                <button
+                    onClick={() => router.push('/focus')}
+                    className="px-8 py-3 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold shadow-lg shadow-orange-500/20 hover:scale-105 transition-transform"
+                >
                     Start Focus Session
                 </button>
             </motion.div>
