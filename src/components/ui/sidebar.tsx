@@ -4,7 +4,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { ChevronRight, PanelLeft } from "lucide-react"
+import { ChevronRight, PanelLeft, ChevronLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -217,10 +217,10 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "group/sidebar relative hidden md:flex flex-col flex-shrink-0 text-white transition-all duration-300 ease-in-out border-r border-white/5 bg-gradient-to-b from-black/80 to-black/60 backdrop-blur-2xl z-50 will-change-transform shadow-[5px_0_30px_rgba(0,0,0,0.5)]",
-          variant === "floating" && "sticky top-0 h-screen border-r border-white/5 bg-black/40 backdrop-blur-xl shadow-[10px_0_30px_rgba(0,0,0,0.3)]",
+          "group/sidebar relative hidden md:flex flex-col flex-shrink-0 text-white transition-all duration-300 ease-in-out border-r border-white/10 bg-background/20 backdrop-blur-xl z-50 will-change-transform",
+          variant === "floating" && "sticky top-0 h-screen bg-background/20 backdrop-blur-xl shadow-2xl",
           variant === "inset" && "p-4",
-          state === 'expanded' ? 'w-[16rem] min-w-[16rem]' : 'w-[5rem] min-w-[5rem]',
+          state === 'expanded' ? 'w-[--sidebar-width]' : 'w-[--sidebar-width-icon]',
           className
         )}
         data-state={state}
@@ -245,7 +245,7 @@ const SidebarToggle = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button>
 >(({ className, children, ...props }, ref) => {
-  const { toggleSidebar, open } = useSidebar();
+  const { toggleSidebar, open, state } = useSidebar();
 
   return (
     <Button
@@ -253,13 +253,15 @@ const SidebarToggle = React.forwardRef<
       variant="ghost"
       size="icon"
       className={cn(
-        'h-8 w-8',
+        "h-8 w-8 rounded-full bg-transparent hover:bg-white/10 text-white/50 hover:text-white transition-all",
+        state === "collapsed" && "hidden",
         className
       )}
       onClick={toggleSidebar}
       {...props}
     >
-      {children}
+      <ChevronLeft className="h-4 w-4" />
+      <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
 });
@@ -270,7 +272,7 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, state } = useSidebar()
 
   return (
     <Button
@@ -278,14 +280,17 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-8 w-8 md:hidden", className)}
+      className={cn(
+        "h-8 w-8 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-all",
+        className
+      )}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <ChevronRight className="h-4 w-4" />
+      <ChevronLeft className="h-4 w-4" />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -365,9 +370,10 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden p-2",
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden p-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
         className
       )}
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       {...props}
     />
   )
@@ -473,18 +479,18 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-white/10 data-[active=true]:font-bold data-[active=true]:text-white data-[active=true]:shadow-[0_0_15px_rgba(124,58,237,0.5)] data-[active=true]:border-l-2 data-[active=true]:border-purple-500 group-data-[[data-state=collapsed]]:h-10 group-data-[[data-state=collapsed]]:w-10 group-data-[[data-state=collapsed]]:justify-center group-data-[[data-state=collapsed]]:p-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-all hover:bg-white/10 hover:text-white focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>svg]:size-5 [&>svg]:shrink-0 data-[active=true]:bg-purple-500/20 data-[active=true]:text-purple-300 data-[active=true]:font-medium data-[active=true]:shadow-[0_0_15px_rgba(168,85,247,0.2)] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
   {
     variants: {
       variant: {
-        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        default: "hover:bg-white/10 hover:text-white",
         outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
+          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-white/10 hover:text-white hover:shadow-[0_0_0_1px_rgba(255,255,255,0.1)]",
       },
       size: {
-        default: "h-8 text-sm",
-        sm: "h-7 text-xs",
-        lg: "h-12 text-sm",
+        default: "h-10 text-sm",
+        sm: "h-8 text-xs",
+        lg: "h-12 text-base",
       },
     },
     defaultVariants: {
@@ -515,7 +521,7 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const { isMobile, state, setOpen } = useSidebar()
 
     const button = (
       <Comp
@@ -524,6 +530,12 @@ const SidebarMenuButton = React.forwardRef<
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        onClick={(e) => {
+          if (state === "collapsed") {
+            setOpen(true);
+          }
+          props.onClick?.(e);
+        }}
         {...props}
       />
     )
