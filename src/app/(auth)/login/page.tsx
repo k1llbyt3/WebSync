@@ -31,18 +31,7 @@ export default function LoginPage() {
     if (error) setError(null);
   }, [email, password]);
 
-  // Cool Loading Sequence Logic
-  useEffect(() => {
-    if (isLoading) {
-      const texts = ["Verifying credentials...", "Syncing your workspace...", "Almost there..."];
-      const interval = setInterval(() => {
-        setLoadingStep((prev) => (prev < texts.length - 1 ? prev + 1 : prev));
-      }, 800);
-      return () => clearInterval(interval);
-    } else {
-      setLoadingStep(0);
-    }
-  }, [isLoading]);
+
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -57,8 +46,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Artificial delay for UX
-    await new Promise(resolve => setTimeout(resolve, 500));
+
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -89,10 +77,7 @@ export default function LoginPage() {
     }
   };
 
-  // --- COOL LOADING UI ---
-  if (isLoading) {
-    return <CoolLoading />;
-  }
+
 
   // --- MODERN LOGIN FORM ---
   return (
@@ -134,15 +119,16 @@ export default function LoginPage() {
               )}
 
               <div className="grid gap-2">
-                <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wide text-white/70 ml-1">Email Address</Label>
+                <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-white ml-1">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="name@work.com"
                   required
-                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-primary/20 transition-all rounded-xl"
+                  className="h-11 bg-white/5 border-white/20 text-white placeholder:text-white/50 focus:border-purple-500/50 focus:ring-purple-500/20 transition-all rounded-xl"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -163,11 +149,25 @@ export default function LoginPage() {
                   className="h-11 bg-white/5 border-white/10 text-white focus:border-primary/50 focus:ring-primary/20 transition-all rounded-xl"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
 
-              <Button type="submit" className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 rounded-xl mt-2 bg-gradient-to-r from-primary to-emerald-600 border-none">
-                Sign In <ArrowRight className="ml-2 h-4 w-4" />
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 rounded-xl mt-2 bg-gradient-to-r from-primary to-emerald-600 border-none disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    Sign In <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
 
               <div className="flex items-center gap-4 my-4">

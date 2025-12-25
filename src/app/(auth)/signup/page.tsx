@@ -174,13 +174,13 @@ export default function SignupPage() {
 
               {/* Name */}
               <div className="grid gap-2">
-                <Label htmlFor="full-name" className="text-xs font-medium uppercase tracking-wide text-white/70 ml-1">Full Name</Label>
+                <Label htmlFor="full-name" className="text-xs font-semibold uppercase tracking-wide text-white ml-1">Full Name</Label>
                 <div className="relative">
                   <Input
                     id="full-name"
                     placeholder="John Doe"
                     required
-                    className="pl-3 h-11 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-primary/20 transition-all rounded-xl"
+                    className="pl-3 h-11 bg-white/5 border-white/20 text-white placeholder:text-white/50 focus:border-purple-500/50 focus:ring-purple-500/20 transition-all rounded-xl"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
