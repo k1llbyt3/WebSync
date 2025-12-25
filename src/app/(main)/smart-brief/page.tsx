@@ -24,17 +24,20 @@ export default function SmartBriefPage() {
     const { data: tasks } = useCollection<Task>(tasksQuery);
 
     const smartFocus = useMemo(() => {
-        if (!tasks) return { critical: [], today: [], upcoming: [] };
+        if (!tasks || !user) return { critical: [], today: [], upcoming: [] };
+
+        // Strict Ownership: Only tasks assigned TO me
+        const myTasks = tasks.filter(t => t.assigneeId === user.uid);
 
         const now = new Date();
         const todayStr = format(now, "yyyy-MM-dd");
 
-        const critical = tasks.filter(t => t.priority <= 3 && t.status !== "Completed");
-        const today = tasks.filter(t => t.dueDate && format(new Date(t.dueDate.seconds * 1000), "yyyy-MM-dd") === todayStr && t.status !== "Completed");
-        const upcoming = tasks.filter(t => (t.priority > 3 && t.priority <= 7) && t.status !== "Completed" && (!t.dueDate || format(new Date(t.dueDate.seconds * 1000), "yyyy-MM-dd") !== todayStr)).slice(0, 3);
+        const critical = myTasks.filter(t => t.priority <= 3 && t.status !== "Completed");
+        const today = myTasks.filter(t => t.dueDate && format(new Date(t.dueDate.seconds * 1000), "yyyy-MM-dd") === todayStr && t.status !== "Completed");
+        const upcoming = myTasks.filter(t => (t.priority > 3 && t.priority <= 7) && t.status !== "Completed" && (!t.dueDate || format(new Date(t.dueDate.seconds * 1000), "yyyy-MM-dd") !== todayStr)).slice(0, 3);
 
         return { critical, today, upcoming };
-    }, [tasks]);
+    }, [tasks, user]);
 
     return (
         <div className="flex h-full flex-col p-6 gap-8 text-white relative overflow-hidden">
@@ -58,7 +61,11 @@ export default function SmartBriefPage() {
                     <CardContent className="space-y-3">
                         {smartFocus.critical.length === 0 && <p className="text-sm text-muted-foreground">No critical tasks. Breathe easy.</p>}
                         {smartFocus.critical.map(task => (
-                            <div key={task.id} className="p-3 rounded-lg bg-red-500/10 border border-red-500/10 flex items-center justify-between">
+                            <div
+                                key={task.id}
+                                onClick={() => router.push(`/tasks?taskId=${task.id}`)}
+                                className="p-3 rounded-lg bg-red-500/10 border border-red-500/10 flex items-center justify-between cursor-pointer hover:bg-red-500/20 transition-colors active:scale-95"
+                            >
                                 <span className="font-medium text-sm truncate">{task.title}</span>
                                 <span className="text-xs bg-red-500/20 px-2 py-1 rounded text-red-300">High</span>
                             </div>
@@ -76,7 +83,11 @@ export default function SmartBriefPage() {
                     <CardContent className="space-y-3">
                         {smartFocus.today.length === 0 && <p className="text-sm text-muted-foreground">Clear schedule for today.</p>}
                         {smartFocus.today.map(task => (
-                            <div key={task.id} className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/10 flex items-center justify-between">
+                            <div
+                                key={task.id}
+                                onClick={() => router.push(`/tasks?taskId=${task.id}`)}
+                                className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/10 flex items-center justify-between cursor-pointer hover:bg-blue-500/20 transition-colors active:scale-95"
+                            >
                                 <span className="font-medium text-sm truncate">{task.title}</span>
                                 <span className="text-xs text-blue-300">
                                     {task.priority <= 3 ? "High" : task.priority <= 7 ? "Medium" : "Low"}

@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { GamificationProvider } from "@/components/gamification-provider";
 
 
 const openSans = Open_Sans({
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
           openSans.variable
@@ -32,13 +34,15 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <FirebaseClientProvider>
-            {children}
-            <Toaster />
+            <GamificationProvider>
+              {children}
+              <Toaster />
+            </GamificationProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
       </body>
